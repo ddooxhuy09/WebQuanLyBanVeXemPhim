@@ -1,0 +1,19 @@
+/* Import tất cả các file CSS con */
+@import url('asset/nav.css');
+@import url('asset/carousel.css');
+@import url('asset/footer.css');
+@import url('asset/moviecontainer.css');
+@import url('asset/movie-detail.css');
+@import url('asset/booking-seat.css');
+
+/* Reset CSS */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+}

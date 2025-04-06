@@ -1,0 +1,27 @@
+<!DOCTYPE tiles-definitions PUBLIC
+    "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+    "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+    <!-- Định nghĩa layout chung cho admin -->
+    <definition name="adminLayout" template="/WEB-INF/views/admin/layout.jsp">
+        <put-attribute name="title" value="" />
+        <put-attribute name="body" value="" />
+    </definition>
+
+    <!-- Trang Dashboard -->
+    <definition name="admin/dashboard" extends="adminLayout">
+        <put-attribute name="title" value="Dashboard" />
+        <put-attribute name="body" value="/WEB-INF/views/admin/dashboard.jsp" />
+    </definition>
+
+    <!-- Trang Quản Lý Phim -->
+    <definition name="admin/movies_manager" extends="adminLayout">
+        <put-attribute name="title" value="Quản Lý Phim" />
+        <put-attribute name="body" value="/WEB-INF/views/admin/movies_manager.jsp" />
+    </definition>
+
+    <!-- Trang Login (không dùng layout admin) -->
+    <definition name="admin/login" template="/WEB-INF/views/admin/login.jsp">
+    <!-- Không cần thêm thuộc tính nào -->
+	</definition>
+</tiles-definitions>

@@ -1,0 +1,126 @@
+:root {
+    --font-family: 'Roboto', sans-serif;
+    --heading-font-family: 'Montserrat', sans-serif;
+    --sidebar-bg-color: #001C44;    /* Xanh đậm gần đen */
+    --text-color: #001C44;          /* Xanh đậm gần đen cho chữ chính */
+    --text-color-light: #F8DAD0;    /* Hồng nhạt cho chữ trên nền tối */
+    --accent-color: #2C99AE;        /* Xanh dương nhạt */
+    --hover-color: #0C5776;         /* Xanh đậm */
+    --card-bg-color: #BCFEFD;       /* Xanh ngọc nhạt */
+    --border-color: #DEE2E6;        /* Xám nhạt (giữ nguyên vì không có trong bảng bạn đưa) */
+    --bg-base: #fff;
+    --shadow-color: rgba(0, 0, 0, 0.1); /* Giữ nguyên */
+}
+
+*, *:before, *:after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    background-color: var(--bg-base);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--heading-font-family);
+    color: var(--text-color);
+}
+
+.container-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    position: absolute;
+}
+
+.main-content {
+    width: 80%;
+    margin: 2rem;
+    background: var(--bg-base);
+    border-radius: 8px;
+    overflow-x: hidden;
+}
+
+/* Nút tùy chỉnh duy nhất */
+.custom-btn {
+    display: inline-block;
+    padding: 6px 12px; /* Kích thước cơ bản */
+    font-family: var(--font-family); /* Roboto */
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    outline: none;
+    border-radius: 4px; /* Bo góc nhẹ */
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    background-color: var(--sidebar-bg-color); 
+    color: var(--bg-base); 
+}
+
+/* Hover */
+.custom-btn:hover {
+    background-color: var(--accent-color); /* #DEE2E6 */
+    color: var(--text-color-light); /* #2C99AE */
+}
+
+/* Focus */
+.custom-btn:focus {
+    outline: none; 
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3); 
+} 
+
+/* Active (khi nhấn giữ) */
+/* .custom-btn:active {
+    background-color: var(--accent-color);
+    color: var(--card-bg-color); 
+    box-shadow: none; 
+} */
+
+.custom-btn.btn-sm {
+    padding: 4px 8px;
+    font-size: 0.875rem;
+}
+
+/* Định nghĩa kiểu bảng toàn cục */
+.table {
+    width: 100%;
+    background-color: var(--bg-base); /* #fff - trắng */
+    color: var(--text-color-light); /* #F8DAD0 - chữ hồng nhạt giống sidebar */
+    border-collapse: collapse; /* Gộp viền */
+}
+
+.table thead {
+    background-color: var(--sidebar-bg-color); /* #001C44 - xanh đậm giống sidebar */
+}
+
+.table th {
+    padding: 8px;
+    font-family: var(--heading-font-family); /* Montserrat */
+    font-weight: 600;
+    color: var(--bg-base); /* #F8DAD0 */
+    border-bottom: 2px solid var(--border-color); /* #DEE2E6 */
+}
+
+.table td {
+    padding: 8px;
+    font-family: var(--font-family); /* Roboto */
+    color: var(--sidebar-bg-color); /* #F8DAD0 */
+    border-bottom: 1px solid var(--border-color); /* #DEE2E6 */
+}
+
+/* Hover trên hàng */
+.table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: var(--border-color); /* #BCFEFD - xanh nhạt khi hover */
+    color: var(--text-color); /* #001C44 - chữ đổi thành xanh đậm để nổi trên nền nhạt */
+}
+
