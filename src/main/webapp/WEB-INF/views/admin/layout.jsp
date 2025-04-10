@@ -30,7 +30,7 @@
             </div>
 
             <!-- Quản Lý Chung -->
-            <a href="${pageContext.request.contextPath}/admin/auth/dashboard" class="nav-link"><i class="fas fa-home"></i> <span>Trang Chủ</span></a>
+            <a href="${pageContext.request.contextPath}/admin/dashboard" class="nav-link"><i class="fas fa-home"></i> <span>Trang Chủ</span></a>
 
             <!-- Quản Lý Rạp & Chiếu Phim -->
             <div class="nav-section-title">Quản Lý Rạp & Chiếu Phim</div>
@@ -38,7 +38,7 @@
             <a href="#" class="nav-link"><i class="fas fa-calendar-alt"></i> <span>Quản Lý Suất Chiếu</span></a>
             <a href="#" class="nav-link"><i class="fas fa-chair"></i> <span>Quản Lý Ghế</span></a>
             <a href="#" class="nav-link"><i class="fas fa-theater-masks"></i> <span>Quản Lý Phòng Chiếu</span></a>
-            <a href="#" class="nav-link"><i class="fas fa-building"></i> <span>Quản Lý Rạp Chiếu</span></a>
+            <a href="${pageContext.request.contextPath}/admin/theaters" class="nav-link"><i class="fas fa-building"></i> <span>Quản Lý Rạp Chiếu</span></a>
 
             <!-- Quản Lý Vé & Giao Dịch -->
             <div class="nav-section-title">Quản Lý Vé & Giao Dịch</div>
@@ -48,7 +48,7 @@
 
             <!-- Quản Lý Thực Phẩm -->
             <div class="nav-section-title">Quản Lý Thực Phẩm</div>
-            <a href="#" class="nav-link"><i class="fas fa-box"></i> <span>Quản Lý Bắp Nước</span></a>
+            <a href="${pageContext.request.contextPath}/admin/food-combo" class="nav-link"><i class="fas fa-box"></i> <span>Quản Lý Bắp Nước và Combo</span></a>
 
             <!-- Quản Lý Khách Hàng & Ưu Đãi -->
             <div class="nav-section-title">Quản Lý Khách Hàng & Ưu Đãi</div>

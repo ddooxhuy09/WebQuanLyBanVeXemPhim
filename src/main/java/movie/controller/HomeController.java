@@ -28,8 +28,7 @@ public class HomeController {
         try {
             Session session = sessionFactory.getCurrentSession();
             Query query = session.createQuery("FROM PhimEntity");
-            @SuppressWarnings("unchecked")
-            List<PhimEntity> entities = (List<PhimEntity>) query.list();
+            List<PhimEntity> entities = query.list();
             List<PhimModel> phimList = new ArrayList<>();
             for (PhimEntity entity : entities) {
                 phimList.add(new PhimModel(entity));

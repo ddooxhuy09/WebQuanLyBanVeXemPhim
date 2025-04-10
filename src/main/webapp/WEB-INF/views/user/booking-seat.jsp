@@ -26,7 +26,15 @@
             <li><a href="#">Góc Điện Ảnh</a></li>
             <li><a href="#">Sự Kiện</a></li>
             <li><a href="#">Rạp/Giá Vé</a></li>
-            <li><a href="#" class="login-btn">Đăng Nhập</a></li>
+            <c:choose>
+                <c:when test="${not empty sessionScope.loggedInUser}">
+                    <li><span>Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</span></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
+                </c:when>
+                <c:otherwise>
+                    <li><a href="${pageContext.request.contextPath}/auth/login" class="login-btn">Đăng Nhập</a></li>
+                </c:otherwise>
+            </c:choose>
         </ul>
     </nav>
 
@@ -34,7 +42,7 @@
         <div class="movie-info-summary">
             <h2>${phim.tenPhim}</h2>
             <div class="booking-details">
-                <p><strong>Rạp:</strong> ${rapChieu.tenRap}</p>
+                <p><strong>Rạp:</strong> ${rapChieu.tenRapChieu}</p>
                 <p><strong>Suất chiếu:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="HH:mm" /></p>
                 <p><strong>Ngày:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="dd/MM/yyyy" /></p>
             </div>
@@ -82,13 +90,18 @@
 
         <div class="booking-summary">
             <h3>Thông tin đặt vé</h3>
-            <div class="selected-seats">
-                <p>Ghế đã chọn: <span id="selected-seats-display"></span></p>
-            </div>
-            <div class="price-summary">
-                <p>Tổng tiền: <span id="total-price">0đ</span></p>
-            </div>
-            <button class="confirm-btn" onclick="confirmBooking()">Xác nhận đặt vé</button>
+            <form action="${pageContext.request.contextPath}/booking/confirm-booking" method="post" id="bookingForm">
+                <input type="hidden" name="maPhim" value="${phim.maPhim}">
+                <input type="hidden" name="maSuatChieu" value="${suatChieu.maSuatChieu}">
+                <input type="hidden" name="selectedSeats" id="selected-seats-input">
+                <div class="selected-seats">
+                    <p>Ghế đã chọn: <span id="selected-seats-display"></span></p>
+                </div>
+                <div class="price-summary">
+                    <p>Tổng tiền: <span id="total-price">0đ</span></p>
+                </div>
+                <button type="submit" class="confirm-btn">Xác nhận đặt vé</button>
+            </form>
         </div>
     </div>
 
@@ -132,7 +145,7 @@
 
     <script>
         let selectedSeats = [];
-        const ticketPrice = ${phim.giaVe != null ? phim.giaVe : 90000}; // Giá vé mặc định nếu null
+        const ticketPrice = ${phim.giaVe != null ? phim.giaVe : 90000};
 
         function selectSeat(seatId) {
             const seatElement = document.querySelector(`.seat[onclick="selectSeat('${seatId}')"]`);
@@ -151,16 +164,15 @@
         function updateSummary() {
             document.getElementById("selected-seats-display").textContent = selectedSeats.join(", ");
             document.getElementById("total-price").textContent = (selectedSeats.length * ticketPrice) + "đ";
+            document.getElementById("selected-seats-input").value = selectedSeats.join(",");
         }
 
-        function confirmBooking() {
+        document.getElementById("bookingForm").addEventListener("submit", function(event) {
             if (selectedSeats.length === 0) {
+                event.preventDefault();
                 alert("Vui lòng chọn ít nhất một ghế!");
-                return;
             }
-            alert("Đặt vé thành công cho các ghế: " + selectedSeats.join(", "));
-            // Thêm logic gửi yêu cầu đặt vé tới server nếu cần
-        }
+        });
     </script>
 </body>
 </html>

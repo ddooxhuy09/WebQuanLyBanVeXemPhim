@@ -222,10 +222,10 @@
             <c:choose>
                 <c:when test="${not empty sessionScope.loggedInUser}">
                     <li><span>Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</span></li>
-                    <li><a href="${pageContext.request.contextPath}/user/auth/logout" class="login-btn">Đăng Xuất</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
                 </c:when>
                 <c:otherwise>
-                    <li><a href="${pageContext.request.contextPath}/user/auth/login" class="login-btn">Đăng Nhập</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/login" class="login-btn">Đăng Nhập</a></li>
                 </c:otherwise>
             </c:choose>
         </ul>
@@ -242,7 +242,7 @@
         <div class="movie-info-summary">
             <h2>${phim.tenPhim}</h2>
             <div class="booking-details">
-                <p><strong>Rạp:</strong> ${rapChieu.tenRapChieu}</p> <!-- Sửa tenRap thành tenRapChieu -->
+                <p><strong>Rạp:</strong> ${rapChieu.tenRapChieu}</p>
                 <p><strong>Suất chiếu:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="HH:mm" /></p>
                 <p><strong>Ngày:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="dd/MM/yyyy" /></p>
             </div>

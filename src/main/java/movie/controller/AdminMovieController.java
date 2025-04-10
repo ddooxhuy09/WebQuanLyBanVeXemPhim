@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,29 +29,18 @@ public class AdminMovieController {
     private SessionFactory sessionFactory;
 
     @RequestMapping(value = "/movies", method = RequestMethod.GET)
-    public String showMovieManager(HttpSession session, Model model) {
-        if (session.getAttribute("loggedInAdmin") == null) {
-            return "redirect:/admin/auth/login";
-        }
-
+    public String showMovieManager(Model model) {
         Session dbSession = sessionFactory.openSession();
         try {
             Query query = dbSession.createQuery("FROM PhimEntity ORDER BY maPhim DESC");
             query.setMaxResults(1);
             PhimEntity latestPhim = (PhimEntity) query.uniqueResult();
 
-            String maPhim;
-            if (latestPhim == null) {
-                maPhim = "P001";
-            } else {
-                String lastMaPhim = latestPhim.getMaPhim();
-                int lastId = Integer.parseInt(lastMaPhim.substring(1));
-                maPhim = String.format("P%03d", lastId + 1);
-            }
+            String maPhim = latestPhim == null ? "P001" : String.format("P%03d", 
+                Integer.parseInt(latestPhim.getMaPhim().substring(1)) + 1);
 
             Query allPhimQuery = dbSession.createQuery("FROM PhimEntity");
-            @SuppressWarnings("unchecked")
-            List<PhimEntity> phimEntities = (List<PhimEntity>) allPhimQuery.list();
+            List<PhimEntity> phimEntities = allPhimQuery.list();
             List<PhimModel> phimModels = new ArrayList<>();
             for (PhimEntity entity : phimEntities) {
                 phimModels.add(new PhimModel(entity));
@@ -60,13 +48,11 @@ public class AdminMovieController {
             model.addAttribute("phimList", phimModels);
 
             Query theLoaiQuery = dbSession.createQuery("FROM TheLoaiEntity");
-            @SuppressWarnings("unchecked")
-            List<TheLoaiEntity> theLoaiEntities = (List<TheLoaiEntity>) theLoaiQuery.list();
+            List<TheLoaiEntity> theLoaiEntities = theLoaiQuery.list();
             model.addAttribute("theLoaiList", theLoaiEntities);
 
             Query dienVienQuery = dbSession.createQuery("FROM DienVienEntity");
-            @SuppressWarnings("unchecked")
-            List<DienVienEntity> dienVienEntities = (List<DienVienEntity>) dienVienQuery.list();
+            List<DienVienEntity> dienVienEntities = dienVienQuery.list();
             model.addAttribute("dienVienList", dienVienEntities);
 
             PhimModel phimModel = new PhimModel();
@@ -80,7 +66,6 @@ public class AdminMovieController {
         } finally {
             dbSession.close();
         }
-
         return "admin/movies_manager";
     }
 
@@ -101,13 +86,7 @@ public class AdminMovieController {
             @RequestParam("giaVe") BigDecimal giaVe,
             @RequestParam("theLoai") String theLoaiStr,
             @RequestParam("dvChinh") String dvChinhStr,
-            HttpSession session,
             Model model) {
-
-        if (session.getAttribute("loggedInAdmin") == null) {
-            return "redirect:/admin/auth/login";
-        }
-
         try {
             Session dbSession = sessionFactory.getCurrentSession();
 
@@ -167,7 +146,6 @@ public class AdminMovieController {
             phim.setDienViens(dienViens);
 
             dbSession.save(phim);
-
             return "redirect:/admin/movies";
         } catch (Exception e) {
             e.printStackTrace();
@@ -177,11 +155,7 @@ public class AdminMovieController {
     }
 
     @RequestMapping(value = "/movies/edit/{maPhim}", method = RequestMethod.GET)
-    public String showEditMovieForm(@PathVariable("maPhim") String maPhim, HttpSession session, Model model) {
-        if (session.getAttribute("loggedInAdmin") == null) {
-            return "redirect:/admin/auth/login";
-        }
-
+    public String showEditMovieForm(@PathVariable("maPhim") String maPhim, Model model) {
         Session dbSession = sessionFactory.openSession();
         try {
             PhimEntity phim = (PhimEntity) dbSession.get(PhimEntity.class, maPhim);
@@ -191,8 +165,7 @@ public class AdminMovieController {
             }
 
             Query query = dbSession.createQuery("FROM PhimEntity");
-            @SuppressWarnings("unchecked")
-            List<PhimEntity> phimEntities = (List<PhimEntity>) query.list();
+            List<PhimEntity> phimEntities = query.list();
             List<PhimModel> phimModels = new ArrayList<>();
             for (PhimEntity entity : phimEntities) {
                 phimModels.add(new PhimModel(entity));
@@ -200,26 +173,20 @@ public class AdminMovieController {
             model.addAttribute("phimList", phimModels);
 
             Query theLoaiQuery = dbSession.createQuery("FROM TheLoaiEntity");
-            @SuppressWarnings("unchecked")
-            List<TheLoaiEntity> theLoaiEntities = (List<TheLoaiEntity>) theLoaiQuery.list();
+            List<TheLoaiEntity> theLoaiEntities = theLoaiQuery.list();
             model.addAttribute("theLoaiList", theLoaiEntities);
 
             Query dienVienQuery = dbSession.createQuery("FROM DienVienEntity");
-            @SuppressWarnings("unchecked")
-            List<DienVienEntity> dienVienEntities = (List<DienVienEntity>) dienVienQuery.list();
+            List<DienVienEntity> dienVienEntities = dienVienQuery.list();
             model.addAttribute("dienVienList", dienVienEntities);
 
             PhimModel phimModel = new PhimModel(phim);
             String theLoaiString = (phimModel.getMaTheLoais() != null && !phimModel.getMaTheLoais().isEmpty()) 
                 ? String.join(",", phimModel.getMaTheLoais()) : "";
             String dvChinhString = (phimModel.getMaDienViens() != null && !phimModel.getMaDienViens().isEmpty()) 
-                ? String.join(",", phimModel.getMaDienViens()) : ""; // Sửa lỗi ở đây
+                ? String.join(",", phimModel.getMaDienViens()) : "";
             model.addAttribute("theLoaiString", theLoaiString);
             model.addAttribute("dvChinhString", dvChinhString);
-
-            // Thêm log để debug
-            System.out.println("maTheLoais: " + phimModel.getMaTheLoais());
-            System.out.println("maDienViens: " + phimModel.getMaDienViens());
 
             model.addAttribute("phimModel", phimModel);
             model.addAttribute("isEdit", true);
@@ -251,13 +218,7 @@ public class AdminMovieController {
             @RequestParam("giaVe") BigDecimal giaVe,
             @RequestParam("theLoai") String theLoaiStr,
             @RequestParam("dvChinh") String dvChinhStr,
-            HttpSession session,
             Model model) {
-
-        if (session.getAttribute("loggedInAdmin") == null) {
-            return "redirect:/admin/auth/login";
-        }
-
         try {
             Session dbSession = sessionFactory.getCurrentSession();
 
@@ -320,7 +281,6 @@ public class AdminMovieController {
             }
 
             dbSession.update(phim);
-
             return "redirect:/admin/movies";
         } catch (Exception e) {
             e.printStackTrace();
@@ -331,11 +291,7 @@ public class AdminMovieController {
 
     @Transactional
     @RequestMapping(value = "/movies/delete/{maPhim}", method = RequestMethod.GET)
-    public String deleteMovie(@PathVariable("maPhim") String maPhim, HttpSession session, Model model) {
-        if (session.getAttribute("loggedInAdmin") == null) {
-            return "redirect:/admin/auth/login";
-        }
-
+    public String deleteMovie(@PathVariable("maPhim") String maPhim, Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
             PhimEntity phim = (PhimEntity) dbSession.get(PhimEntity.class, maPhim);
@@ -347,7 +303,6 @@ public class AdminMovieController {
             } else {
                 model.addAttribute("error", "Không tìm thấy phim với mã " + maPhim);
             }
-
             return "redirect:/admin/movies";
         } catch (Exception e) {
             e.printStackTrace();

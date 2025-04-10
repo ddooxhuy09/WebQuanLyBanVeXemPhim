@@ -19,11 +19,11 @@
             <li><a href="#">Rạp/Giá Vé</a></li>
             <c:choose>
                 <c:when test="${not empty sessionScope.loggedInUser}">
-                    <li><span>Xin chào, ${sessionScope.loggedInUser}</span></li>
-                    <li><a href="${pageContext.request.contextPath}/user/auth/logout" class="login-btn">Đăng Xuất</a></li>
+                    <li><span>Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</span></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
                 </c:when>
                 <c:otherwise>
-                    <li><a href="${pageContext.request.contextPath}/user/auth/login" class="login-btn">Đăng Nhập</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/login" class="login-btn">Đăng Nhập</a></li>
                 </c:otherwise>
             </c:choose>
         </ul>
@@ -48,7 +48,7 @@
 
         <c:forEach var="phim" items="${phimList}">
             <div class="movie-item">
-                <img src="${pageContext.request.contextPath}/resources/user${phim.urlPoster}" alt="${phim.tenPhim}" id="movie-poster" />
+                <img src="${pageContext.request.contextPath}/resources/user/images/${phim.urlPoster}" alt="${phim.tenPhim}" id="movie-poster" />
                 <div class="movie-info">
                     <h3>${phim.tenPhim}</h3>
                     <p>Thể loại: 

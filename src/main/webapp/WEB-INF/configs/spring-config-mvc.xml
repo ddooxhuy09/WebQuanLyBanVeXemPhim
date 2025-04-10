@@ -43,6 +43,15 @@
         <property name="suffix" value=".jsp" />
         <property name="order" value="1" />
     </bean>
+    
+    <!-- Cấu hình Interceptor -->
+    <mvc:interceptors>
+	    <mvc:interceptor>
+	        <mvc:mapping path="/**"/>
+	        <mvc:exclude-mapping path="/resources/**"/>
+	        <bean class="movie.interceptor.AuthInterceptor"/>
+	    </mvc:interceptor>
+	</mvc:interceptors>
 
     <!-- Cấu hình Hibernate -->
     <bean id="sessionFactory" 

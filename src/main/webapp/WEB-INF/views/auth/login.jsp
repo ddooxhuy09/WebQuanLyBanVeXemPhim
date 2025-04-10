@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Login - Galaxy Cinema</title>
+    <title>Login - Galaxy Cinema</title>
     <style>
         * {
             margin: 0;
@@ -71,30 +71,40 @@
         }
         .error-message { color: red; }
         .success-message { color: green; }
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .register-link a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Admin Login Form -->
-        <div class="form-box login">
-            <h2>Đăng Nhập Admin</h2>
+        <div class="form-box">
+            <h2>Đăng Nhập</h2>
             <c:if test="${not empty error}">
                 <div class="error-message">${error}</div>
             </c:if>
             <c:if test="${not empty success}">
                 <div class="success-message">${success}</div>
             </c:if>
-            <form action="${pageContext.request.contextPath}/admin/auth/login" method="post">
+            <form action="${pageContext.request.contextPath}/auth/login" method="post">
                 <div class="input-group">
-                    <label for="login-username">Tên đăng nhập</label>
-                    <input type="text" id="login-username" name="username" placeholder="Nhập tên đăng nhập" required />
+                    <label for="username">Email hoặc Tên đăng nhập</label>
+                    <input type="text" id="username" name="username" placeholder="Nhập email hoặc tên đăng nhập" required />
                 </div>
                 <div class="input-group">
-                    <label for="login-password">Mật Khẩu</label>
-                    <input type="password" id="login-password" name="password" placeholder="Nhập mật khẩu" required />
+                    <label for="password">Mật Khẩu</label>
+                    <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required />
                 </div>
                 <button type="submit" class="btn">Đăng Nhập</button>
             </form>
+            <div class="register-link">
+                Chưa có tài khoản? <a href="${pageContext.request.contextPath}/auth/register">Đăng ký</a>
+            </div>
         </div>
     </div>
 </body>

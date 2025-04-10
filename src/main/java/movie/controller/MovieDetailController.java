@@ -33,18 +33,15 @@ public class MovieDetailController {
         try {
             Session session = sessionFactory.getCurrentSession();
             
-            // Lấy phim với ép kiểu tường minh
             PhimEntity phimEntity = (PhimEntity) session.get(PhimEntity.class, maPhim);
             if (phimEntity == null) {
                 model.addAttribute("error", "Phim không tồn tại");
                 return "user/movie-detail";
             }
             
-            // Tải (initialize) các collection một cách tường minh
             Hibernate.initialize(phimEntity.getTheLoais());
             Hibernate.initialize(phimEntity.getDienViens());
 
-            // Truy vấn lịch chiếu - sửa câu truy vấn để tránh tham chiếu maRap
             Query lichChieuQuery = session.createQuery(
                 "SELECT DISTINCT sc, sc.phongChieu, sc.phongChieu.rapChieu, sc.ngayGioChieu " +
                 "FROM SuatChieuEntity sc " +
@@ -52,8 +49,7 @@ public class MovieDetailController {
                 "ORDER BY sc.ngayGioChieu"
             );
             lichChieuQuery.setParameter("maPhim", maPhim);
-            @SuppressWarnings("unchecked")
-            List<Object[]> results = (List<Object[]>) lichChieuQuery.list();
+            List<Object[]> results = lichChieuQuery.list();
 
             Map<RapChieuModel, Set<SuatChieuModel>> lichChieuMap = new LinkedHashMap<>();
             for (Object[] row : results) {
