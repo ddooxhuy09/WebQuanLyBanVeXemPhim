@@ -42,6 +42,10 @@ public class VeEntity {
     @JoinColumn(name = "MaGhe", referencedColumnName = "MaGhe", insertable = false, updatable = false)
     private GheEntity ghe;
 
+    @ManyToOne
+    @JoinColumn(name = "MaDonHang", referencedColumnName = "MaDonHang")
+    private DonHangEntity donHang; // Thêm mối quan hệ với DonHangEntity
+
     // Getters và Setters
     public String getMaVe() { return maVe; }
     public void setMaVe(String maVe) { this.maVe = maVe; }
@@ -63,4 +67,6 @@ public class VeEntity {
     public void setSuatChieu(SuatChieuEntity suatChieu) { this.suatChieu = suatChieu; }
     public GheEntity getGhe() { return ghe; }
     public void setGhe(GheEntity ghe) { this.ghe = ghe; }
+    public DonHangEntity getDonHang() { return donHang; }
+    public void setDonHang(DonHangEntity donHang) { this.donHang = donHang; }
 }

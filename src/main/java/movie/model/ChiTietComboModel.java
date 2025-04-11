@@ -12,7 +12,7 @@ public class ChiTietComboModel {
 
     public ChiTietComboModel(ChiTietComboEntity entity) {
         if (entity != null) {
-            this.maCombo = entity.getMaCombo();
+            this.maCombo = entity.getCombo() != null ? entity.getCombo().getMaCombo() : null; // Lấy maCombo từ ComboEntity
             this.maBapNuoc = entity.getMaBapNuoc();
             this.soLuong = entity.getSoLuong();
         }

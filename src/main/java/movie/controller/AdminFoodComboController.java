@@ -49,7 +49,8 @@ public class AdminFoodComboController {
                 bapNuocList.add(new BapNuocModel(entity));
             }
 
-            Query allComboQuery = dbSession.createQuery("FROM ComboEntity c LEFT JOIN FETCH c.chiTietCombos");
+            // Sử dụng DISTINCT để loại bỏ bản sao
+            Query allComboQuery = dbSession.createQuery("SELECT DISTINCT c FROM ComboEntity c LEFT JOIN FETCH c.chiTietCombos");
             List<ComboEntity> comboEntities = allComboQuery.list();
             List<ComboModel> comboList = new ArrayList<>();
             for (ComboEntity entity : comboEntities) {
@@ -77,6 +78,7 @@ public class AdminFoodComboController {
         return "admin/food_combo_manager";
     }
 
+    // Các phương thức khác giữ nguyên
     @Transactional
     @RequestMapping(value = "/food-combo/add-bapnuoc", method = RequestMethod.POST)
     public String addBapNuoc(
@@ -121,10 +123,9 @@ public class AdminFoodComboController {
             if (bapNuocIds != null && soLuongs != null && bapNuocIds.size() == soLuongs.size()) {
                 for (int i = 0; i < bapNuocIds.size(); i++) {
                     ChiTietComboEntity chiTiet = new ChiTietComboEntity();
-                    chiTiet.setMaCombo(maCombo);
+                    chiTiet.setCombo(combo);
                     chiTiet.setMaBapNuoc(bapNuocIds.get(i));
                     chiTiet.setSoLuong(soLuongs.get(i));
-                    chiTiet.setCombo(combo);
                     chiTietCombos.add(chiTiet);
                 }
             }
@@ -167,7 +168,7 @@ public class AdminFoodComboController {
                     combo.setGiaCombo(gia);
                     combo.setMoTa(moTa);
 
-                    Query deleteQuery = dbSession.createQuery("DELETE FROM ChiTietComboEntity WHERE maCombo = :maCombo");
+                    Query deleteQuery = dbSession.createQuery("DELETE FROM ChiTietComboEntity WHERE combo.maCombo = :maCombo");
                     deleteQuery.setParameter("maCombo", ma);
                     deleteQuery.executeUpdate();
 
@@ -175,10 +176,9 @@ public class AdminFoodComboController {
                     if (bapNuocIds != null && soLuongs != null && bapNuocIds.size() == soLuongs.size()) {
                         for (int i = 0; i < bapNuocIds.size(); i++) {
                             ChiTietComboEntity chiTiet = new ChiTietComboEntity();
-                            chiTiet.setMaCombo(ma);
+                            chiTiet.setCombo(combo);
                             chiTiet.setMaBapNuoc(bapNuocIds.get(i));
                             chiTiet.setSoLuong(soLuongs.get(i));
-                            chiTiet.setCombo(combo);
                             chiTietCombos.add(chiTiet);
                         }
                     }

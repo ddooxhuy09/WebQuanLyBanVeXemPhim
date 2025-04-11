@@ -41,7 +41,7 @@ public class DonHangEntity {
     private List<ChiTietDonHangComboEntity> chiTietCombo;
 
     @OneToMany(mappedBy = "donHang", cascade = CascadeType.ALL)
-    private List<ChiTietDonHangVeEntity> chiTietVe;
+    private List<VeEntity> veList; // Thay thế ChiTietDonHangVeEntity
 
     @OneToMany(mappedBy = "donHang", cascade = CascadeType.ALL)
     private List<ThanhToanEntity> thanhToans;
@@ -67,8 +67,8 @@ public class DonHangEntity {
     public void setChiTietBapNuoc(List<ChiTietDonHangBapNuocEntity> chiTietBapNuoc) { this.chiTietBapNuoc = chiTietBapNuoc; }
     public List<ChiTietDonHangComboEntity> getChiTietCombo() { return chiTietCombo; }
     public void setChiTietCombo(List<ChiTietDonHangComboEntity> chiTietCombo) { this.chiTietCombo = chiTietCombo; }
-    public List<ChiTietDonHangVeEntity> getChiTietVe() { return chiTietVe; }
-    public void setChiTietVe(List<ChiTietDonHangVeEntity> chiTietVe) { this.chiTietVe = chiTietVe; }
+    public List<VeEntity> getVeList() { return veList; }
+    public void setVeList(List<VeEntity> veList) { this.veList = veList; }
     public List<ThanhToanEntity> getThanhToans() { return thanhToans; }
     public void setThanhToans(List<ThanhToanEntity> thanhToans) { this.thanhToans = thanhToans; }
 }

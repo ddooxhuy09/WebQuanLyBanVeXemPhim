@@ -34,16 +34,14 @@ public class BookingController {
                                        @RequestParam(value = "maSuatChieu", required = false) String maSuatChieu,
                                        HttpSession session,
                                        Model model) {
-        // Fall back to session attributes if query parameters are missing
         if (maPhim == null || maSuatChieu == null) {
             maPhim = (String) session.getAttribute("redirectMaPhim");
             maSuatChieu = (String) session.getAttribute("redirectMaSuatChieu");
         }
         
-        // If still null, return an error or redirect to a safe page
         if (maPhim == null || maSuatChieu == null) {
             model.addAttribute("error", "Thông tin phim hoặc suất chiếu không được cung cấp. Vui lòng chọn lại.");
-            return "redirect:/home/"; // Redirect to home or an error page
+            return "redirect:/home/";
         }
 
         return showSeatSelection(maPhim, maSuatChieu, session, model);
@@ -339,20 +337,15 @@ public class BookingController {
                 vnp_Params.put("vnp_Version", VNPayConfig.vnp_Version);
                 vnp_Params.put("vnp_Command", VNPayConfig.vnp_Command);
                 vnp_Params.put("vnp_TmnCode", VNPayConfig.vnp_TmnCode);
-                
                 long amount = tongTien.multiply(new BigDecimal("100")).longValue();
                 vnp_Params.put("vnp_Amount", String.valueOf(amount));
-                
                 vnp_Params.put("vnp_CurrCode", VNPayConfig.vnp_CurrCode);
                 vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
                 vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
                 vnp_Params.put("vnp_OrderType", "250000");
                 vnp_Params.put("vnp_Locale", VNPayConfig.vnp_Locale);
-                
                 String returnUrl = VNPayConfig.getReturnUrl(request);
-                System.out.println("VNPAY Callback URL: " + returnUrl);
                 vnp_Params.put("vnp_ReturnUrl", returnUrl);
-                
                 vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
                 vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
                 
@@ -373,7 +366,6 @@ public class BookingController {
                 
                 StringBuilder paymentUrl = new StringBuilder(VNPayConfig.vnp_Url);
                 paymentUrl.append('?');
-                
                 Iterator<Map.Entry<String, String>> iteratorUrl = vnp_Params.entrySet().iterator();
                 while (iteratorUrl.hasNext()) {
                     Map.Entry<String, String> entry = iteratorUrl.next();
@@ -386,7 +378,6 @@ public class BookingController {
                 }
                 
                 session.setAttribute("pendingOrder", donHang);
-                System.out.println("Payment URL: " + paymentUrl.toString());
                 return "redirect:" + paymentUrl.toString();
             } else {
                 dbSession.save(donHang);
@@ -417,12 +408,8 @@ public class BookingController {
                     ve.setGiaVe(vePrices.get(selectedGhe.getMaGhe()));
                     ve.setNgayMua(new Date());
                     ve.setTrangThai("Đã thanh toán");
+                    ve.setDonHang(donHang); // Gán trực tiếp DonHangEntity
                     dbSession.save(ve);
-
-                    ChiTietDonHangVeEntity chiTietVe = new ChiTietDonHangVeEntity();
-                    chiTietVe.setDonHang(donHang);
-                    chiTietVe.setMaVe(maVe);
-                    dbSession.save(chiTietVe);
                 }
 
                 if (selectedCombos != null && !selectedCombos.isEmpty()) {
@@ -493,8 +480,6 @@ public class BookingController {
             params.remove("vnp_SecureHash");
             params.remove("vnp_SecureHashType");
 
-            System.out.println("VNPAY Callback Received Params: " + params);
-
             StringBuilder hashData = new StringBuilder();
             TreeMap<String, String> sortedParams = new TreeMap<>(params);
             Iterator<Map.Entry<String, String>> iterator = sortedParams.entrySet().iterator();
@@ -510,10 +495,6 @@ public class BookingController {
 
             String secureHash = hmacSHA512(VNPayConfig.vnp_HashSecret, hashData.toString());
             String vnp_ResponseCode = params.get("vnp_ResponseCode");
-            
-            System.out.println("VNPAY Callback - Received Hash: " + vnp_SecureHash);
-            System.out.println("VNPAY Callback - Calculated Hash: " + secureHash);
-            System.out.println("VNPAY Callback - Response Code: " + vnp_ResponseCode);
             
             if (secureHash.equals(vnp_SecureHash)) {
                 if ("00".equals(vnp_ResponseCode)) {
@@ -565,8 +546,6 @@ public class BookingController {
                                  @RequestParam("selectedSeats") String selectedSeats,
                                  HttpSession session,
                                  Model model) {
-        KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
-
         if (selectedSeats == null || selectedSeats.isEmpty()) {
             model.addAttribute("error", "Vui lòng chọn ít nhất một ghế");
             ModelAndView mav = new ModelAndView("forward:/booking/select-seats");
@@ -651,12 +630,8 @@ public class BookingController {
             ve.setGiaVe(vePrices.get(selectedGhe.getMaGhe()));
             ve.setNgayMua(new Date());
             ve.setTrangThai("Đã thanh toán");
+            ve.setDonHang(donHang); // Gán trực tiếp DonHangEntity
             dbSession.save(ve);
-
-            ChiTietDonHangVeEntity chiTietVe = new ChiTietDonHangVeEntity();
-            chiTietVe.setDonHang(donHang);
-            chiTietVe.setMaVe(maVe);
-            dbSession.save(chiTietVe);
         }
 
         if (selectedCombos != null && !selectedCombos.isEmpty()) {
