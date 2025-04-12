@@ -88,9 +88,9 @@
             <a href="#" class="nav-link" title="Quản Lý Quy Đổi Điểm">
                 <i class="fas fa-exchange-alt"></i> <span>Quản Lý Quy Đổi Điểm</span>
             </a>
-            <a href="#" class="nav-link" title="Quản Lý Phụ Thu">
-                <i class="fas fa-plus-circle"></i> <span>Quản Lý Phụ Thu</span>
-            </a>
+            <a href="${pageContext.request.contextPath}/admin/surcharges" class="nav-link" title="Quản Lý Phụ Thu">
+			    <i class="fas fa-plus-circle"></i> <span>Quản Lý Phụ Thu</span>
+			</a>
 
             <!-- Hệ Thống -->
             <div class="nav-section-title">Hệ Thống</div>

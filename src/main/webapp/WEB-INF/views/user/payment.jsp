@@ -21,17 +21,19 @@
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         .card { padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border: none; background: #fff; border-radius: 8px; }
         h5 { font-weight: bold; margin-bottom: 1rem; color: #1a73e8; }
-        .form-group { display: flex; align-items: center; gap: 10px; }
+        .form-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .form-control { max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px 0 0 4px; }
-        .btn-warning { background-color: #ffca28; color: #333; padding: 8px 16px; border: none; border-radius: 0 4px 4px 0; font-weight: bold; }
+        .btn-warning { background-color: #ffca28; color: #333; padding: 8px 16px; border: none; border-radius: 0 4px 4px 0; font-weight: bold; cursor: pointer; }
         .btn-warning:hover { background-color: #ffb300; }
         .payment-option { padding: 15px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; cursor: pointer; }
         .payment-option.selected { border-color: #1a73e8; background-color: #f8f9fa; }
         .payment-option img { width: 50px; height: 30px; object-fit: contain; margin-right: 15px; }
         .confirm-btn { width: 100%; padding: 1rem; background-color: #1a73e8; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; margin-top: 2rem; }
         .confirm-btn:hover { background-color: #1976d2; }
-        .error-message { color: red; text-align: center; margin: 20px; }
-        .success-message { color: green; text-align: center; margin: 20px; }
+        .error-message { color: red; text-align: center; margin: 20px; padding: 10px; background-color: #fff3f3; border-left: 4px solid red; border-radius: 4px; }
+        .success-message { color: green; text-align: center; margin: 20px; padding: 10px; background-color: #f0fff0; border-left: 4px solid green; border-radius: 4px; }
+        .discount-info { margin: 15px 0; padding: 12px; background: #e8f4fd; border-radius: 4px; border-left: 4px solid #1a73e8; }
+        .discount-badge { display: inline-block; padding: 3px 8px; background-color: #1a73e8; color: white; font-size: 12px; border-radius: 12px; margin-right: 8px; }
     </style>
 </head>
 <body>
@@ -44,7 +46,7 @@
             <li><a href="#">Rạp/Giá Vé</a></li>
             <c:choose>
                 <c:when test="${not empty sessionScope.loggedInUser}">
-                    <li><span>Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</span></li>
+                    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
                     <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
                 </c:when>
                 <c:otherwise>
@@ -64,14 +66,33 @@
 
         <div class="card">
             <h5>Khuyến mãi</h5>
-            <form action="${pageContext.request.contextPath}/booking/confirm-payment" method="post" id="paymentForm">
+            
+            <!-- Form để áp dụng mã khuyến mãi -->
+            <form action="${pageContext.request.contextPath}/booking/apply-promo-code" method="post" class="promo-form">
                 <div class="form-group">
                     <input type="text" name="promoCode" class="form-control" placeholder="Nhập mã khuyến mãi" value="${promoCode}">
-                    <button type="button" class="btn-warning">Áp Dụng</button>
+                    <button type="submit" class="btn-warning">Áp Dụng</button>
                 </div>
+            </form>
 
-                <hr>
+            <!-- Hiển thị thông tin giảm giá nếu có -->
+            <c:if test="${not empty khuyenMai}">
+                <div class="discount-info">
+                    <p><span class="discount-badge">Mã giảm giá</span> ${khuyenMai.moTa}</p>
+                    <p>Loại giảm giá: ${khuyenMai.loaiGiamGia == 'Phần trăm' ? 'Giảm ' : 'Giảm cố định '}
+                       <strong><fmt:formatNumber value="${khuyenMai.giaTriGiam}" type="number" />
+                       ${khuyenMai.loaiGiamGia == 'Phần trăm' ? '%' : 'đ'}</strong>
+                    </p>
+                    <p>Số tiền giảm: <strong><fmt:formatNumber value="${discountAmount}" type="currency" currencySymbol="đ" groupingUsed="true"/></strong></p>
+                </div>
+            </c:if>
 
+            <hr>
+
+            <!-- Form thanh toán -->
+            <form action="${pageContext.request.contextPath}/booking/confirm-payment" method="post" id="paymentForm">
+                <input type="hidden" name="promoCode" value="${promoCode}">
+                
                 <h5>Phương thức thanh toán</h5>
                 <div>
                     <div class="payment-option" id="zalopay_option" onclick="selectPaymentMethod('zalopay')">
@@ -86,7 +107,7 @@
                     </div>
                 </div>
 
-                <p>Tổng tiền: <fmt:formatNumber value="${tongTien}" type="currency" currencySymbol="đ" groupingUsed="true"/></p>
+                <p style="margin-top: 20px; font-size: 18px;">Tổng tiền: <strong><fmt:formatNumber value="${tongTien}" type="currency" currencySymbol="đ" groupingUsed="true"/></strong></p>
                 <button type="submit" class="confirm-btn">Xác nhận thanh toán</button>
             </form>
         </div>
@@ -111,6 +132,16 @@
                 const parentOption = checkedInput.closest('.payment-option');
                 if (parentOption) {
                     parentOption.classList.add('selected');
+                }
+            } else {
+                // Mặc định chọn phương thức đầu tiên nếu chưa có phương thức nào được chọn
+                const firstOption = document.querySelector('.payment-option');
+                if (firstOption) {
+                    firstOption.classList.add('selected');
+                    const radioInput = firstOption.querySelector('input[type="radio"]');
+                    if (radioInput) {
+                        radioInput.checked = true;
+                    }
                 }
             }
         };

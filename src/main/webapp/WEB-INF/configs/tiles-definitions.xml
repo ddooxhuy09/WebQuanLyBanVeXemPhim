@@ -35,6 +35,11 @@
 	    <put-attribute name="title" value="Quản Lý Khuyến Mãi" />
 	    <put-attribute name="body" value="/WEB-INF/views/admin/promotion_manager.jsp" />
 	</definition>
+	
+	<definition name="admin/surcharge_manager" extends="adminLayout">
+	    <put-attribute name="title" value="Quản Lý Phụ Thu" />
+	    <put-attribute name="body" value="/WEB-INF/views/admin/surcharge_manager.jsp" />
+	</definition>
 
     <!-- Trang Login (không dùng layout admin) -->
     <definition name="admin/login" template="/WEB-INF/views/admin/login.jsp">

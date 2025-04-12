@@ -55,4 +55,7 @@ public class KhachHangEntity {
     public void setNgayDangKy(Date ngayDangKy) { this.ngayDangKy = ngayDangKy; }
     public int getTongDiem() { return tongDiem; }
     public void setTongDiem(int tongDiem) { this.tongDiem = tongDiem; }
+    public void congDiem(int diemThem) {
+        this.tongDiem += diemThem;
+    }
 }

@@ -2,6 +2,7 @@ package movie.entity;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 import java.util.List;
 
@@ -41,10 +42,16 @@ public class DonHangEntity {
     private List<ChiTietDonHangComboEntity> chiTietCombo;
 
     @OneToMany(mappedBy = "donHang", cascade = CascadeType.ALL)
-    private List<VeEntity> veList; // Thay thế ChiTietDonHangVeEntity
+    private List<VeEntity> veList;
 
     @OneToMany(mappedBy = "donHang", cascade = CascadeType.ALL)
     private List<ThanhToanEntity> thanhToans;
+
+    // Thêm phương thức tính điểm dựa trên tổng tiền (sử dụng API mới)
+    public int tinhDiem() {
+        if (tongTien == null) return 0;
+        return tongTien.divide(new BigDecimal("1000"), RoundingMode.DOWN).intValue();
+    }
 
     // Getters và Setters
     public String getMaDonHang() { return maDonHang; }
