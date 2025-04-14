@@ -86,6 +86,7 @@ public class AdminMovieController {
             @RequestParam("giaVe") BigDecimal giaVe,
             @RequestParam("theLoai") String theLoaiStr,
             @RequestParam("dvChinh") String dvChinhStr,
+            @RequestParam(value = "moTa", required = false) String moTa, // Thêm moTa
             Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
@@ -106,6 +107,7 @@ public class AdminMovieController {
             phim.setUrlPoster(urlPoster);
             phim.setUrlTrailer(urlTrailer);
             phim.setGiaVe(giaVe);
+            phim.setMoTa(moTa); // Lưu moTa
 
             Set<TheLoaiEntity> theLoais = new HashSet<>();
             if (!theLoaiStr.isEmpty()) {
@@ -218,6 +220,7 @@ public class AdminMovieController {
             @RequestParam("giaVe") BigDecimal giaVe,
             @RequestParam("theLoai") String theLoaiStr,
             @RequestParam("dvChinh") String dvChinhStr,
+            @RequestParam(value = "moTa", required = false) String moTa, // Thêm moTa
             Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
@@ -242,6 +245,7 @@ public class AdminMovieController {
             phim.setUrlPoster(urlPoster);
             phim.setUrlTrailer(urlTrailer);
             phim.setGiaVe(giaVe);
+            phim.setMoTa(moTa); // Cập nhật moTa
 
             phim.getTheLoais().clear();
             phim.getDienViens().clear();

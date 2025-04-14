@@ -47,7 +47,7 @@ public class DonHangEntity {
     @OneToMany(mappedBy = "donHang", cascade = CascadeType.ALL)
     private List<ThanhToanEntity> thanhToans;
 
-    // Thêm phương thức tính điểm dựa trên tổng tiền (sử dụng API mới)
+    // Thêm phương thức tính điểm dựa trên tổng tiền
     public int tinhDiem() {
         if (tongTien == null) return 0;
         return tongTien.divide(new BigDecimal("1000"), RoundingMode.DOWN).intValue();

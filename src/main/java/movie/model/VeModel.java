@@ -10,7 +10,6 @@ public class VeModel {
     private String maGhe;
     private BigDecimal giaVe;
     private Date ngayMua;
-    private String trangThai;
 
     // Constructors
     public VeModel() {}
@@ -23,11 +22,10 @@ public class VeModel {
             this.maGhe = entity.getMaGhe();
             this.giaVe = entity.getGiaVe();
             this.ngayMua = entity.getNgayMua();
-            this.trangThai = entity.getTrangThai();
         }
     }
 
-    // Getters và Setters
+    // Getters and Setters
     public String getMaVe() { return maVe; }
     public void setMaVe(String maVe) { this.maVe = maVe; }
     public String getMaKhachHang() { return maKhachHang; }
@@ -40,6 +38,4 @@ public class VeModel {
     public void setGiaVe(BigDecimal giaVe) { this.giaVe = giaVe; }
     public Date getNgayMua() { return ngayMua; }
     public void setNgayMua(Date ngayMua) { this.ngayMua = ngayMua; }
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 }

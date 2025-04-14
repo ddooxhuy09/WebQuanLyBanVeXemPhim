@@ -6,17 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css?v=1.0">
     <title>Booking Seat - Galaxy Cinema</title>
-    <style>
-        .seat-row { display: flex; align-items: center; margin: 10px 0; }
-        .row-label { width: 30px; font-weight: bold; }
-        .seat { width: 40px; height: 40px; margin: 5px; text-align: center; line-height: 40px; cursor: pointer; border: 1px solid #ccc; }
-        .seat.available { background-color: #fff; }
-        .seat.selected { background-color: #ffd700; }
-        .seat.occupied { background-color: #ccc; cursor: not-allowed; }
-        .screen { background-color: #333; color: white; text-align: center; padding: 10px; margin: 20px 0; }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -28,9 +19,9 @@
             <li><a href="#">Rạp/Giá Vé</a></li>
             <c:choose>
                 <c:when test="${not empty sessionScope.loggedInUser}">
-				    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
-				    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
-				</c:when>
+                    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
+                </c:when>
                 <c:otherwise>
                     <li><a href="${pageContext.request.contextPath}/auth/login" class="login-btn">Đăng Nhập</a></li>
                 </c:otherwise>
@@ -38,7 +29,40 @@
         </ul>
     </nav>
 
+    <!-- Thanh tiến trình -->
+    <div class="progress-container">
+        <div class="progress-step completed" onclick="goToStep(1)">
+            <div class="circle">1</div>
+            <span>Chọn phim</span>
+        </div>
+        <div class="progress-step active" onclick="goToStep(2)">
+            <div class="circle">2</div>
+            <span>Chọn ghế</span>
+        </div>
+        <div class="progress-step" onclick="goToStep(3)">
+            <div class="circle">3</div>
+            <span>Chọn đồ ăn</span>
+        </div>
+        <div class="progress-step" onclick="goToStep(4)">
+            <div class="circle">4</div>
+            <span>Thanh toán</span>
+        </div>
+    </div>
+
+    <!-- Bộ đếm giờ -->
+	<div class="timer-container">
+	    <span>Thời gian giữ ghế: </span>
+	    <span id="timer">10:00</span>
+	</div>
+
     <div class="booking-container">
+        <c:if test="${not empty error}">
+            <div class="error-message">${error}</div>
+        </c:if>
+        <c:if test="${not empty success}">
+            <div class="success-message">${success}</div>
+        </c:if>
+
         <div class="movie-info-summary">
             <h2>${phim.tenPhim}</h2>
             <div class="booking-details">
@@ -53,21 +77,28 @@
         </div>
 
         <div class="seating-map">
-            <c:forEach var="i" begin="0" end="${soHang - 1}">
+            <c:forEach var="row" items="${rowLabels}">
                 <div class="seat-row">
-                    <span class="row-label">
-                        <c:out value="${Character.toString((char)(65 + i))}" />
-                    </span>
-                    <c:forEach var="j" begin="1" end="${soCot}">
-                        <c:set var="seatId" value="${Character.toString((char)(65 + i))}${j}" />
-                        <c:choose>
-                            <c:when test="${occupiedSeats.contains(seatId)}">
-                                <div class="seat occupied">${seatId}</div>
-                            </c:when>
-                            <c:otherwise>
-                                <div class="seat available" onclick="selectSeat('${seatId}')">${seatId}</div>
-                            </c:otherwise>
-                        </c:choose>
+                    <span class="row-label">${row}</span>
+                    <c:forEach var="ghe" items="${gheList}">
+                        <c:if test="${ghe.tenHang eq row}">
+                            <c:set var="seatId" value="${ghe.tenHang}${ghe.soGhe}" />
+                            <c:set var="isDouble" value="${ghe.loaiGhe.tenLoaiGhe eq 'Đôi'}" />
+                            <c:set var="isPaid" value="${paidSeats.contains(seatId)}" />
+                            <c:set var="isReserved" value="${reservedSeats.contains(seatId)}" />
+                            <div id="seat-${seatId}" 
+                                 class="seat ${isDouble ? 'double' : ''} ${isPaid ? 'occupied' : isReserved ? 'reserved' : 'available'}"
+                                 data-seat-id="${seatId}" 
+                                 data-is-paid="${isPaid}"
+                                 data-is-reserved="${isReserved}"
+                                 data-he-so-gia="${ghe.loaiGhe.heSoGia}"
+                                 data-reserve-time="${seatReservationTimes[seatId] != null ? seatReservationTimes[seatId] : ''}">
+                                ${seatId}
+                                <c:if test="${isReserved}">
+                                    <span class="timer" id="timer-${seatId}"></span>
+                                </c:if>
+                            </div>
+                        </c:if>
                     </c:forEach>
                 </div>
             </c:forEach>
@@ -86,6 +117,14 @@
                 <div class="seat-example occupied"></div>
                 <span>Ghế đã đặt</span>
             </div>
+            <div class="legend-item">
+                <div class="seat-example reserved"></div>
+                <span>Ghế đang giữ</span>
+            </div>
+            <div class="legend-item">
+                <div class="seat-example double"></div>
+                <span>Ghế đôi</span>
+            </div>
         </div>
 
         <div class="booking-summary">
@@ -93,14 +132,14 @@
             <form action="${pageContext.request.contextPath}/booking/confirm-booking" method="post" id="bookingForm">
                 <input type="hidden" name="maPhim" value="${phim.maPhim}">
                 <input type="hidden" name="maSuatChieu" value="${suatChieu.maSuatChieu}">
-                <input type="hidden" name="selectedSeats" id="selected-seats-input">
                 <div class="selected-seats">
                     <p>Ghế đã chọn: <span id="selected-seats-display"></span></p>
+                    <input type="hidden" name="selectedSeats" id="selected-seats-input">
                 </div>
                 <div class="price-summary">
                     <p>Tổng tiền: <span id="total-price">0đ</span></p>
                 </div>
-                <button type="submit" class="confirm-btn">Xác nhận đặt vé</button>
+                <button type="submit" class="confirm-btn" id="confirm-btn">Xác nhận đặt vé</button>
             </form>
         </div>
     </div>
@@ -143,35 +182,175 @@
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <script>
         let selectedSeats = [];
-        const ticketPrice = ${phim.giaVe != null ? phim.giaVe : 90000};
+        const baseTicketPrice = ${phim.giaVe != null ? phim.giaVe : 90000};
+        const RESERVATION_TIMEOUT = 5 * 60 * 1000;
+        let timers = {};
+        let timeLeft = sessionStorage.getItem("timeLeft") || (10 * 60);
+        let timerId;
 
-        function selectSeat(seatId) {
-            const seatElement = document.querySelector(`.seat[onclick="selectSeat('${seatId}')"]`);
-            if (seatElement.classList.contains("occupied")) return;
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSeats();
+            connectWebSocket();
+            startTimers();
+            startBookingTimer();
+        });
 
+        function startBookingTimer() {
+            timerId = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    alert("Hết thời gian đặt vé! Vui lòng bắt đầu lại.");
+                    window.location.href = "${pageContext.request.contextPath}/home/";
+                    return;
+                }
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById("timer").textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        function goToStep(step) {
+            if (step === 1) {
+                window.location.href = "${pageContext.request.contextPath}/movie-detail?id=${phim.maPhim}";
+            } else if (step > 2) {
+                if (selectedSeats.length === 0) {
+                    alert("Vui lòng chọn ghế trước khi chuyển sang bước tiếp theo!");
+                } else {
+                    document.getElementById("bookingForm").submit();
+                }
+            }
+        }
+
+        function initializeSeats() {
+            document.querySelectorAll('.seat').forEach(seat => {
+                seat.classList.remove('selected');
+                const seatId = seat.getAttribute('data-seat-id');
+                const isPaid = seat.getAttribute('data-is-paid') === 'true';
+                const isReserved = seat.getAttribute('data-is-reserved') === 'true';
+                if (isPaid) {
+                    seat.classList.add('occupied');
+                } else if (isReserved) {
+                    seat.classList.add('reserved');
+                } else {
+                    seat.classList.add('available');
+                }
+                seat.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleSeatSelection(this, seatId);
+                });
+            });
+            updateSummary();
+        }
+
+        function toggleSeatSelection(seatElement, seatId) {
+            if (seatElement.classList.contains('occupied') || seatElement.classList.contains('reserved')) {
+                return;
+            }
             if (selectedSeats.includes(seatId)) {
                 selectedSeats = selectedSeats.filter(id => id !== seatId);
-                seatElement.classList.remove("selected");
+                seatElement.classList.remove('selected');
             } else {
                 selectedSeats.push(seatId);
-                seatElement.classList.add("selected");
+                seatElement.classList.add('selected');
             }
             updateSummary();
         }
 
         function updateSummary() {
-            document.getElementById("selected-seats-display").textContent = selectedSeats.join(", ");
-            document.getElementById("total-price").textContent = (selectedSeats.length * ticketPrice) + "đ";
-            document.getElementById("selected-seats-input").value = selectedSeats.join(",");
+            document.getElementById('selected-seats-display').textContent = selectedSeats.join(', ');
+            document.getElementById('selected-seats-input').value = selectedSeats.join(',');
+            let totalPrice = 0;
+            selectedSeats.forEach(seatId => {
+                const seatElement = document.getElementById('seat-' + seatId);
+                const heSoGia = parseFloat(seatElement.getAttribute('data-he-so-gia') || '1');
+                totalPrice += baseTicketPrice * heSoGia;
+            });
+            document.getElementById('total-price').textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('confirm-btn').disabled = selectedSeats.length === 0;
         }
 
-        document.getElementById("bookingForm").addEventListener("submit", function(event) {
+        function startTimers() {
+            document.querySelectorAll('.seat.reserved').forEach(seat => {
+                const seatId = seat.getAttribute('data-seat-id');
+                const reserveTime = parseInt(seat.getAttribute('data-reserve-time') || '0');
+                if (reserveTime) {
+                    updateTimer(seatId, reserveTime);
+                }
+            });
+        }
+
+        function updateTimer(seatId, reserveTime) {
+            if (timers[seatId]) {
+                clearInterval(timers[seatId]);
+            }
+            const timerElement = document.getElementById('timer-' + seatId);
+            if (!timerElement) return;
+
+            timers[seatId] = setInterval(() => {
+                const now = new Date().getTime();
+                const elapsed = now - reserveTime;
+                const remaining = RESERVATION_TIMEOUT - elapsed;
+                if (remaining <= 0) {
+                    clearInterval(timers[seatId]);
+                    delete timers[seatId];
+                    const seatElement = document.getElementById('seat-' + seatId);
+                    seatElement.classList.remove('reserved');
+                    seatElement.classList.add('available');
+                    seatElement.removeAttribute('data-is-reserved');
+                    seatElement.querySelector('.timer')?.remove();
+                } else {
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                }
+            }, 1000);
+        }
+
+        function connectWebSocket() {
+            const socket = new SockJS('${pageContext.request.contextPath}/ws');
+            const stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                stompClient.subscribe('/topic/seats/${suatChieu.maSuatChieu}', function(message) {
+                    const updatedSeats = JSON.parse(message.body);
+                    updatedSeats.forEach(seatId => {
+                        const seatElement = document.getElementById('seat-' + seatId);
+                        if (seatElement && !seatElement.classList.contains('selected')) {
+                            seatElement.classList.remove('available');
+                            seatElement.classList.add('reserved');
+                            seatElement.setAttribute('data-is-reserved', 'true');
+                            let timer = seatElement.querySelector('.timer');
+                            if (!timer) {
+                                timer = document.createElement('span');
+                                timer.className = 'timer';
+                                timer.id = 'timer-' + seatId;
+                                seatElement.appendChild(timer);
+                            }
+                            const now = new Date().getTime();
+                            seatElement.setAttribute('data-reserve-time', now);
+                            updateTimer(seatId, now);
+                        }
+                    });
+                });
+            }, function(error) {
+                console.error('WebSocket connection error:', error);
+            });
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', function(event) {
             if (selectedSeats.length === 0) {
                 event.preventDefault();
-                alert("Vui lòng chọn ít nhất một ghế!");
+                alert('Vui lòng chọn ít nhất một ghế!');
             }
+        });
+
+        window.addEventListener("beforeunload", () => {
+            sessionStorage.setItem("timeLeft", timeLeft);
         });
     </script>
 </body>

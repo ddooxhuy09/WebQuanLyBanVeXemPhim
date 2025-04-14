@@ -47,6 +47,9 @@ public class PhimEntity {
     @Column(name = "GiaVe")
     private BigDecimal giaVe;
 
+    @Column(name = "MoTa") // Thêm cột MoTa
+    private String moTa;
+
     @ManyToMany
     @JoinTable(
         name = "Phim_TheLoai",
@@ -88,6 +91,8 @@ public class PhimEntity {
     public void setUrlTrailer(String urlTrailer) { this.urlTrailer = urlTrailer; }
     public BigDecimal getGiaVe() { return giaVe; }
     public void setGiaVe(BigDecimal giaVe) { this.giaVe = giaVe; }
+    public String getMoTa() { return moTa; } // Getter cho MoTa
+    public void setMoTa(String moTa) { this.moTa = moTa; } // Setter cho MoTa
     public Set<TheLoaiEntity> getTheLoais() { return theLoais; }
     public void setTheLoais(Set<TheLoaiEntity> theLoais) { this.theLoais = theLoais; }
     public Set<DienVienEntity> getDienViens() { return dienViens; }

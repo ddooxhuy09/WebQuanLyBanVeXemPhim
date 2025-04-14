@@ -3,22 +3,24 @@ package movie.controller;
 import movie.entity.*;
 import movie.model.*;
 import movie.config.VNPayConfig;
+import movie.service.SeatReservationService;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -29,42 +31,46 @@ public class BookingController {
     @Autowired
     private SessionFactory sessionFactory;
 
+    @Autowired
+    private SeatReservationService seatReservationService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @PostConstruct
+    public void init() {
+        seatReservationService.startExpirationCheck();
+    }
+
     @Transactional
-    @RequestMapping(value = "/select-seats", method = RequestMethod.GET)
-    public String showSeatSelectionGet(@RequestParam(value = "maPhim", required = false) String maPhim,
-                                       @RequestParam(value = "maSuatChieu", required = false) String maSuatChieu,
-                                       HttpSession session,
-                                       Model model) {
+    @RequestMapping(value = "/select-seats", method = {RequestMethod.GET, RequestMethod.POST})
+    public String showSeatSelection(@RequestParam(value = "maPhim", required = false) String maPhim,
+                                   @RequestParam(value = "maSuatChieu", required = false) String maSuatChieu,
+                                   HttpSession session,
+                                   Model model) {
         if (maPhim == null || maSuatChieu == null) {
             maPhim = (String) session.getAttribute("redirectMaPhim");
             maSuatChieu = (String) session.getAttribute("redirectMaSuatChieu");
         }
-        
+
         if (maPhim == null || maSuatChieu == null) {
             model.addAttribute("error", "Thông tin phim hoặc suất chiếu không được cung cấp. Vui lòng chọn lại.");
             return "redirect:/home/";
         }
 
-        return showSeatSelection(maPhim, maSuatChieu, session, model);
-    }
-
-    @Transactional
-    @RequestMapping(value = "/select-seats", method = RequestMethod.POST)
-    public String showSeatSelection(@RequestParam("maPhim") String maPhim,
-                                    @RequestParam("maSuatChieu") String maSuatChieu,
-                                    HttpSession session,
-                                    Model model) {
         try {
-            if (maPhim == null || maSuatChieu == null) {
-                model.addAttribute("error", "Thông tin phim hoặc suất chiếu không hợp lệ");
-                return "user/book-ticket";
+            KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
+            if (loggedInUser == null) {
+                session.setAttribute("redirectMaPhim", maPhim);
+                session.setAttribute("redirectMaSuatChieu", maSuatChieu);
+                model.addAttribute("error", "Vui lòng đăng nhập để đặt vé");
+                return "redirect:/auth/login";
             }
 
             Session dbSession = sessionFactory.getCurrentSession();
 
             Query phimQuery = dbSession.createQuery(
-                "FROM PhimEntity p LEFT JOIN FETCH p.theLoais LEFT JOIN FETCH p.dienViens WHERE p.maPhim = :maPhim"
-            );
+                    "FROM PhimEntity p LEFT JOIN FETCH p.theLoais LEFT JOIN FETCH p.dienViens WHERE p.maPhim = :maPhim");
             phimQuery.setParameter("maPhim", maPhim);
             PhimEntity phimEntity = (PhimEntity) phimQuery.uniqueResult();
             if (phimEntity == null) {
@@ -73,10 +79,7 @@ public class BookingController {
             }
 
             Query suatChieuQuery = dbSession.createQuery(
-                "SELECT sc, sc.phongChieu, sc.phongChieu.rapChieu " +
-                "FROM SuatChieuEntity sc " +
-                "WHERE sc.maSuatChieu = :maSuatChieu"
-            );
+                    "SELECT sc, sc.phongChieu, sc.phongChieu.rapChieu FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
             suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
             Object[] suatChieuResult = (Object[]) suatChieuQuery.uniqueResult();
             if (suatChieuResult == null) {
@@ -89,26 +92,38 @@ public class BookingController {
             RapChieuEntity rapChieu = (RapChieuEntity) suatChieuResult[2];
 
             Query gheQuery = dbSession.createQuery(
-                "FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu ORDER BY g.tenHang, g.soGhe"
-            );
+                    "FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu ORDER BY g.tenHang, g.soGhe");
             gheQuery.setParameter("maPhongChieu", phongChieu.getMaPhongChieu());
             List<GheEntity> gheList = gheQuery.list();
 
             Query veQuery = dbSession.createQuery(
-                "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu"
-            );
+                    "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu");
             veQuery.setParameter("maSuatChieu", maSuatChieu);
             List<VeEntity> veList = veQuery.list();
 
-            Set<String> occupiedSeats = new HashSet<>();
+            Set<String> reservedSeats = new HashSet<>();
+            Set<String> paidSeats = new HashSet<>();
+            Map<String, Long> seatReservationTimes = new HashMap<>();
             for (VeEntity ve : veList) {
                 for (GheEntity ghe : gheList) {
                     if (ghe.getMaGhe().equals(ve.getMaGhe())) {
-                        occupiedSeats.add(ghe.getTenHang() + ghe.getSoGhe());
+                        String seatId = ghe.getTenHang() + ghe.getSoGhe();
+                        if (ve.getDonHang() == null) {
+                            reservedSeats.add(seatId);
+                            if (ve.getNgayMua() != null) {
+                                seatReservationTimes.put(seatId, ve.getNgayMua().getTime());
+                            }
+                        } else {
+                            paidSeats.add(seatId);
+                            System.out.println("Paid seat: " + seatId + ", MaDonHang: " + ve.getDonHang().getMaDonHang());
+                        }
                         break;
                     }
                 }
             }
+
+            System.out.println("Paid seats: " + paidSeats);
+            System.out.println("Reserved seats: " + reservedSeats);
 
             Set<String> uniqueRows = new TreeSet<>();
             int maxCot = 0;
@@ -129,7 +144,12 @@ public class BookingController {
             model.addAttribute("gheList", gheList);
             model.addAttribute("rowLabels", rowLabels);
             model.addAttribute("soCot", maxCot);
-            model.addAttribute("occupiedSeats", occupiedSeats);
+            model.addAttribute("reservedSeats", reservedSeats);
+            model.addAttribute("paidSeats", paidSeats);
+            model.addAttribute("seatReservationTimes", seatReservationTimes);
+
+            session.setAttribute("maPhim", maPhim);
+            session.setAttribute("maSuatChieu", maSuatChieu);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -140,13 +160,208 @@ public class BookingController {
     }
 
     @Transactional
-    @RequestMapping(value = "/select-food", method = RequestMethod.POST)
-    public String showFoodSelection(@RequestParam("maPhim") String maPhim,
-                                    @RequestParam("maSuatChieu") String maSuatChieu,
-                                    @RequestParam("selectedSeats") String selectedSeats,
+    @RequestMapping(value = "/reserve-seats", method = RequestMethod.POST)
+    public String reserveSeats(@RequestParam("maPhim") String maPhim,
+                              @RequestParam("maSuatChieu") String maSuatChieu,
+                              @RequestParam("selectedSeats") String selectedSeats,
+                              HttpSession session,
+                              Model model) {
+        try {
+            KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
+            if (loggedInUser == null) {
+                session.setAttribute("redirectMaPhim", maPhim);
+                session.setAttribute("redirectMaSuatChieu", maSuatChieu);
+                model.addAttribute("error", "Vui lòng đăng nhập để đặt vé");
+                return "redirect:/auth/login";
+            }
+
+            if (selectedSeats == null || selectedSeats.isEmpty()) {
+                model.addAttribute("error", "Vui lòng chọn ít nhất một ghế");
+                return showSeatSelection(maPhim, maSuatChieu, session, model);
+            }
+
+            Session dbSession = sessionFactory.getCurrentSession();
+            Query phimQuery = dbSession.createQuery("FROM PhimEntity p WHERE p.maPhim = :maPhim");
+            phimQuery.setParameter("maPhim", maPhim);
+            PhimEntity phimEntity = (PhimEntity) phimQuery.uniqueResult();
+            if (phimEntity == null) {
+                model.addAttribute("error", "Phim không tồn tại");
+                return "user/book-ticket";
+            }
+
+            Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
+            suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
+            SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
+            if (suatChieuEntity == null) {
+                model.addAttribute("error", "Suất chiếu không tồn tại");
+                return "user/book-ticket";
+            }
+
+            List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
+            Query gheQuery = dbSession.createQuery(
+                    "FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
+            gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
+            List<GheEntity> gheList = gheQuery.list();
+
+            Date fiveMinutesAgo = new Date(System.currentTimeMillis() - 5 * 60 * 1000);
+            for (String seatId : selectedSeatList) {
+                GheEntity selectedGhe = null;
+                for (GheEntity ghe : gheList) {
+                    if ((ghe.getTenHang() + ghe.getSoGhe()).equals(seatId.trim())) {
+                        selectedGhe = ghe;
+                        break;
+                    }
+                }
+                if (selectedGhe != null) {
+                    Query veQuery = dbSession.createQuery(
+                            "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu AND v.maGhe = :maGhe");
+                    veQuery.setParameter("maSuatChieu", maSuatChieu);
+                    veQuery.setParameter("maGhe", selectedGhe.getMaGhe());
+                    VeEntity existingVe = (VeEntity) veQuery.uniqueResult();
+                    if (existingVe != null) {
+                        if (existingVe.getDonHang() != null) {
+                            model.addAttribute("error", "Ghế " + seatId + " đã được thanh toán");
+                            return showSeatSelection(maPhim, maSuatChieu, session, model);
+                        } else if (!existingVe.getMaKhachHang().equals(loggedInUser.getMaKhachHang()) &&
+                                existingVe.getNgayMua().after(fiveMinutesAgo)) {
+                            model.addAttribute("error", "Ghế " + seatId + " đang được giữ bởi người khác");
+                            return showSeatSelection(maPhim, maSuatChieu, session, model);
+                        }
+                    }
+                }
+            }
+
+            seatReservationService.updateSeatReservation(maSuatChieu, selectedSeatList, loggedInUser.getMaKhachHang(),
+                    phimEntity.getGiaVe());
+
+            session.setAttribute("selectedSeats", selectedSeats);
+            session.setAttribute("maPhim", maPhim);
+            session.setAttribute("maSuatChieu", maSuatChieu);
+
+            messagingTemplate.convertAndSend("/topic/seats/" + maSuatChieu, selectedSeatList);
+            return "redirect:/booking/select-food";
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Lỗi khi giữ ghế: " + e.getMessage());
+            return showSeatSelection(maPhim, maSuatChieu, session, model);
+        }
+    }
+
+    @Transactional
+    @RequestMapping(value = "/update-seats", method = RequestMethod.POST)
+    public String updateSeats(@RequestParam("maPhim") String maPhim,
+                             @RequestParam("maSuatChieu") String maSuatChieu,
+                             @RequestParam("selectedSeats") String selectedSeats,
+                             HttpSession session,
+                             Model model) {
+        try {
+            KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
+            if (loggedInUser == null) {
+                session.setAttribute("redirectMaPhim", maPhim);
+                session.setAttribute("redirectMaSuatChieu", maSuatChieu);
+                model.addAttribute("error", "Vui lòng đăng nhập để đặt vé");
+                return "redirect:/auth/login";
+            }
+
+            if (selectedSeats == null || selectedSeats.isEmpty()) {
+                model.addAttribute("error", "Vui lòng chọn ít nhất một ghế");
+                return showSeatSelection(maPhim, maSuatChieu, session, model);
+            }
+
+            Session dbSession = sessionFactory.getCurrentSession();
+            Query phimQuery = dbSession.createQuery("FROM PhimEntity p WHERE p.maPhim = :maPhim");
+            phimQuery.setParameter("maPhim", maPhim);
+            PhimEntity phimEntity = (PhimEntity) phimQuery.uniqueResult();
+            if (phimEntity == null) {
+                model.addAttribute("error", "Phim không tồn tại");
+                return "user/book-ticket";
+            }
+
+            Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
+            suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
+            SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
+            if (suatChieuEntity == null) {
+                model.addAttribute("error", "Suất chiếu không tồn tại");
+                return "user/book-ticket";
+            }
+
+            List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
+            Query gheQuery = dbSession.createQuery(
+                    "FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
+            gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
+            List<GheEntity> gheList = gheQuery.list();
+
+            Date fiveMinutesAgo = new Date(System.currentTimeMillis() - 5 * 60 * 1000);
+            for (String seatId : selectedSeatList) {
+                GheEntity selectedGhe = null;
+                for (GheEntity ghe : gheList) {
+                    if ((ghe.getTenHang() + ghe.getSoGhe()).equals(seatId.trim())) {
+                        selectedGhe = ghe;
+                        break;
+                    }
+                }
+                if (selectedGhe != null) {
+                    Query veQuery = dbSession.createQuery(
+                            "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu AND v.maGhe = :maGhe");
+                    veQuery.setParameter("maSuatChieu", maSuatChieu);
+                    veQuery.setParameter("maGhe", selectedGhe.getMaGhe());
+                    VeEntity existingVe = (VeEntity) veQuery.uniqueResult();
+                    if (existingVe != null) {
+                        if (existingVe.getDonHang() != null) {
+                            model.addAttribute("error", "Ghế " + seatId + " đã được thanh toán");
+                            return showSeatSelection(maPhim, maSuatChieu, session, model);
+                        } else if (!existingVe.getMaKhachHang().equals(loggedInUser.getMaKhachHang()) &&
+                                existingVe.getNgayMua().after(fiveMinutesAgo)) {
+                            model.addAttribute("error", "Ghế " + seatId + " đang được giữ bởi người khác");
+                            return showSeatSelection(maPhim, maSuatChieu, session, model);
+                        }
+                    }
+                }
+            }
+
+            seatReservationService.updateSeatReservation(maSuatChieu, selectedSeatList, loggedInUser.getMaKhachHang(),
+                    phimEntity.getGiaVe());
+
+            session.setAttribute("selectedSeats", selectedSeats);
+            session.setAttribute("maPhim", maPhim);
+            session.setAttribute("maSuatChieu", maSuatChieu);
+
+            messagingTemplate.convertAndSend("/topic/seats/" + maSuatChieu, selectedSeatList);
+            return "redirect:/booking/select-food";
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Lỗi khi cập nhật ghế: " + e.getMessage());
+            return showSeatSelection(maPhim, maSuatChieu, session, model);
+        }
+    }
+
+    @Transactional
+    @RequestMapping(value = "/select-food", method = {RequestMethod.GET, RequestMethod.POST})
+    public String showFoodSelection(@RequestParam(value = "maPhim", required = false) String maPhim,
+                                    @RequestParam(value = "maSuatChieu", required = false) String maSuatChieu,
+                                    @RequestParam(value = "selectedSeats", required = false) String selectedSeats,
                                     HttpSession session,
                                     Model model) {
+        if (maPhim == null || maSuatChieu == null || selectedSeats == null) {
+            maPhim = (String) session.getAttribute("maPhim");
+            maSuatChieu = (String) session.getAttribute("maSuatChieu");
+            selectedSeats = (String) session.getAttribute("selectedSeats");
+        }
+
+        if (maPhim == null || maSuatChieu == null || selectedSeats == null) {
+            model.addAttribute("error", "Thông tin đặt vé không đầy đủ.");
+            return "redirect:/home/";
+        }
+
         try {
+            KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
+            if (loggedInUser == null) {
+                session.setAttribute("redirectMaPhim", maPhim);
+                session.setAttribute("redirectMaSuatChieu", maSuatChieu);
+                model.addAttribute("error", "Vui lòng đăng nhập để đặt vé");
+                return "redirect:/auth/login";
+            }
+
             Session dbSession = sessionFactory.getCurrentSession();
 
             Query comboQuery = dbSession.createQuery("FROM ComboEntity c");
@@ -184,23 +399,40 @@ public class BookingController {
     @Transactional
     @RequestMapping(value = "/select-payment", method = RequestMethod.POST)
     public String showPayment(@RequestParam("maPhim") String maPhim,
-                              @RequestParam("maSuatChieu") String maSuatChieu,
-                              @RequestParam("selectedSeats") String selectedSeats,
-                              @RequestParam Map<String, String> allParams,
-                              HttpSession session,
-                              Model model) {
+                             @RequestParam("maSuatChieu") String maSuatChieu,
+                             @RequestParam("selectedSeats") String selectedSeats,
+                             @RequestParam Map<String, String> allParams,
+                             HttpSession session,
+                             Model model) {
         try {
+            KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
+            if (loggedInUser == null) {
+                session.setAttribute("redirectMaPhim", maPhim);
+                session.setAttribute("redirectMaSuatChieu", maSuatChieu);
+                model.addAttribute("error", "Vui lòng đăng nhập để đặt vé");
+                return "redirect:/auth/login";
+            }
+
             Session dbSession = sessionFactory.getCurrentSession();
 
             Query phimQuery = dbSession.createQuery("FROM PhimEntity p WHERE p.maPhim = :maPhim");
             phimQuery.setParameter("maPhim", maPhim);
             PhimEntity phimEntity = (PhimEntity) phimQuery.uniqueResult();
+            if (phimEntity == null) {
+                model.addAttribute("error", "Phim không tồn tại");
+                return "user/select-food";
+            }
 
             Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
             suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
             SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
+            if (suatChieuEntity == null) {
+                model.addAttribute("error", "Suất chiếu không tồn tại");
+                return "user/select-food";
+            }
+
             Query gheQuery = dbSession.createQuery("FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
-            gheQuery.setParameter("maPhongChieu", suatChieuEntity.getMaPhongChieu());
+            gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
             List<GheEntity> gheList = gheQuery.list();
 
             List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
@@ -225,15 +457,22 @@ public class BookingController {
             for (Map.Entry<String, String> entry : allParams.entrySet()) {
                 if (entry.getKey().startsWith("combo_")) {
                     String maCombo = entry.getKey().substring(6);
-                    int quantity = Integer.parseInt(entry.getValue());
+                    int quantity;
+                    try {
+                        quantity = Integer.parseInt(entry.getValue());
+                    } catch (NumberFormatException e) {
+                        quantity = 0;
+                    }
                     if (quantity > 0) {
                         selectedCombos.put(maCombo, quantity);
                         Query comboQuery = dbSession.createQuery("FROM ComboEntity c WHERE c.maCombo = :maCombo");
                         comboQuery.setParameter("maCombo", maCombo);
                         ComboEntity combo = (ComboEntity) comboQuery.uniqueResult();
-                        BigDecimal giaCombo = combo.getGiaCombo().multiply(BigDecimal.valueOf(quantity));
-                        comboPrices.put(maCombo, giaCombo);
-                        totalCombo = totalCombo.add(giaCombo);
+                        if (combo != null) {
+                            BigDecimal giaCombo = combo.getGiaCombo().multiply(BigDecimal.valueOf(quantity));
+                            comboPrices.put(maCombo, giaCombo);
+                            totalCombo = totalCombo.add(giaCombo);
+                        }
                     }
                 }
             }
@@ -244,15 +483,22 @@ public class BookingController {
             for (Map.Entry<String, String> entry : allParams.entrySet()) {
                 if (entry.getKey().startsWith("bapNuoc_")) {
                     String maBapNuoc = entry.getKey().substring(8);
-                    int quantity = Integer.parseInt(entry.getValue());
+                    int quantity;
+                    try {
+                        quantity = Integer.parseInt(entry.getValue());
+                    } catch (NumberFormatException e) {
+                        quantity = 0;
+                    }
                     if (quantity > 0) {
                         selectedBapNuocs.put(maBapNuoc, quantity);
                         Query bapNuocQuery = dbSession.createQuery("FROM BapNuocEntity b WHERE b.maBapNuoc = :maBapNuoc");
                         bapNuocQuery.setParameter("maBapNuoc", maBapNuoc);
                         BapNuocEntity bapNuoc = (BapNuocEntity) bapNuocQuery.uniqueResult();
-                        BigDecimal giaBapNuoc = bapNuoc.getGiaBapNuoc().multiply(BigDecimal.valueOf(quantity));
-                        bapNuocPrices.put(maBapNuoc, giaBapNuoc);
-                        totalBapNuoc = totalBapNuoc.add(giaBapNuoc);
+                        if (bapNuoc != null) {
+                            BigDecimal giaBapNuoc = bapNuoc.getGiaBapNuoc().multiply(BigDecimal.valueOf(quantity));
+                            bapNuocPrices.put(maBapNuoc, giaBapNuoc);
+                            totalBapNuoc = totalBapNuoc.add(giaBapNuoc);
+                        }
                     }
                 }
             }
@@ -268,13 +514,15 @@ public class BookingController {
             session.setAttribute("comboPrices", comboPrices);
             session.setAttribute("bapNuocPrices", bapNuocPrices);
             session.setAttribute("tongTien", tongTien);
-            // Lưu tổng tiền gốc để dùng khi tính giảm giá
             session.setAttribute("originTongTien", tongTien);
 
             model.addAttribute("tongTien", tongTien);
             model.addAttribute("selectedSeats", selectedSeatList);
             model.addAttribute("selectedCombos", selectedCombos);
             model.addAttribute("selectedBapNuocs", selectedBapNuocs);
+            model.addAttribute("vePrices", vePrices);
+            model.addAttribute("comboPrices", comboPrices);
+            model.addAttribute("bapNuocPrices", bapNuocPrices);
 
             return "user/payment";
         } catch (Exception e) {
@@ -283,38 +531,33 @@ public class BookingController {
             return "user/select-food";
         }
     }
-    
+
     @Transactional
     @RequestMapping(value = "/apply-promo-code", method = RequestMethod.POST)
     public String applyPromoCode(@RequestParam("promoCode") String promoCode,
-                                 HttpSession session,
-                                 Model model) {
+                                HttpSession session,
+                                Model model) {
         try {
             if (promoCode == null || promoCode.isEmpty()) {
                 model.addAttribute("error", "Vui lòng nhập mã khuyến mãi!");
                 return "user/payment";
             }
-            
+
             Session dbSession = sessionFactory.getCurrentSession();
-            
-            // Tìm mã khuyến mãi trong cơ sở dữ liệu
+
             Query khuyenMaiQuery = dbSession.createQuery(
-                "FROM KhuyenMaiEntity k WHERE k.maCode = :maCode AND :currentDate BETWEEN k.ngayBatDau AND k.ngayKetThuc"
-            );
+                    "FROM KhuyenMaiEntity k WHERE k.maCode = :maCode AND :currentDate BETWEEN k.ngayBatDau AND k.ngayKetThuc");
             khuyenMaiQuery.setParameter("maCode", promoCode);
             khuyenMaiQuery.setParameter("currentDate", new Date());
-            
             KhuyenMaiEntity khuyenMai = (KhuyenMaiEntity) khuyenMaiQuery.uniqueResult();
-            
+
             if (khuyenMai == null) {
                 model.addAttribute("error", "Mã khuyến mãi không hợp lệ hoặc đã hết hạn!");
                 return "user/payment";
             }
-            
-            // Lấy tổng tiền hiện tại từ session
+
             BigDecimal tongTien = (BigDecimal) session.getAttribute("originTongTien");
             if (tongTien == null) {
-                // Nếu chưa lưu originTongTien, lấy từ tongTien và lưu lại
                 tongTien = (BigDecimal) session.getAttribute("tongTien");
                 if (tongTien == null) {
                     model.addAttribute("error", "Không tìm thấy thông tin đơn hàng!");
@@ -322,53 +565,49 @@ public class BookingController {
                 }
                 session.setAttribute("originTongTien", tongTien);
             }
-            
-            // Tính toán giảm giá dựa trên loại giảm giá
+
             BigDecimal discountAmount;
             BigDecimal newTotal;
-            
             if ("Phần trăm".equals(khuyenMai.getLoaiGiamGia())) {
-                // Tính giảm giá theo phần trăm
                 BigDecimal discountPercentage = khuyenMai.getGiaTriGiam().divide(new BigDecimal("100"));
                 discountAmount = tongTien.multiply(discountPercentage);
                 newTotal = tongTien.subtract(discountAmount);
             } else {
-                // Giảm giá theo số tiền cố định
                 discountAmount = khuyenMai.getGiaTriGiam();
                 newTotal = tongTien.subtract(discountAmount);
                 if (newTotal.compareTo(BigDecimal.ZERO) < 0) {
                     newTotal = BigDecimal.ZERO;
                 }
             }
-            
-            // Cập nhật thông tin giảm giá vào session
+
             session.setAttribute("appliedPromoCode", promoCode);
             session.setAttribute("discountAmount", discountAmount);
             session.setAttribute("maKhuyenMai", khuyenMai.getMaKhuyenMai());
-            session.setAttribute("tongTien", newTotal); // Cập nhật tổng tiền trong session
-            
-            // Thêm thuộc tính vào model để hiển thị
+            session.setAttribute("tongTien", newTotal);
+
             model.addAttribute("promoCode", promoCode);
             model.addAttribute("khuyenMai", khuyenMai);
             model.addAttribute("discountAmount", discountAmount);
             model.addAttribute("tongTien", newTotal);
             model.addAttribute("success", "Mã khuyến mãi đã được áp dụng thành công!");
-            
-            // Lấy lại các thuộc tính cần thiết từ session để hiển thị đúng
+
             String selectedSeats = (String) session.getAttribute("selectedSeats");
-            @SuppressWarnings("unchecked")
             Map<String, Integer> selectedCombos = (Map<String, Integer>) session.getAttribute("selectedCombos");
-            @SuppressWarnings("unchecked")
             Map<String, Integer> selectedBapNuocs = (Map<String, Integer>) session.getAttribute("selectedBapNuocs");
-            
+            Map<String, BigDecimal> vePrices = (Map<String, BigDecimal>) session.getAttribute("vePrices");
+            Map<String, BigDecimal> comboPrices = (Map<String, BigDecimal>) session.getAttribute("comboPrices");
+            Map<String, BigDecimal> bapNuocPrices = (Map<String, BigDecimal>) session.getAttribute("bapNuocPrices");
+
             if (selectedSeats != null) {
                 model.addAttribute("selectedSeats", Arrays.asList(selectedSeats.split(",")));
             }
             model.addAttribute("selectedCombos", selectedCombos);
             model.addAttribute("selectedBapNuocs", selectedBapNuocs);
-            
+            model.addAttribute("vePrices", vePrices);
+            model.addAttribute("comboPrices", comboPrices);
+            model.addAttribute("bapNuocPrices", bapNuocPrices);
+
             return "user/payment";
-            
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi áp dụng mã giảm giá: " + e.getMessage());
@@ -379,23 +618,18 @@ public class BookingController {
     @Transactional
     @RequestMapping(value = "/confirm-payment", method = RequestMethod.POST)
     public String confirmPayment(@RequestParam("paymentMethod") String paymentMethod,
-                                 @RequestParam(value = "promoCode", required = false) String promoCode,
-                                 HttpSession session,
-                                 HttpServletRequest request,
-                                 Model model) throws java.io.UnsupportedEncodingException {
+                                @RequestParam(value = "promoCode", required = false) String promoCode,
+                                HttpSession session,
+                                HttpServletRequest request,
+                                Model model) throws java.io.UnsupportedEncodingException {
         KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
         String selectedSeats = (String) session.getAttribute("selectedSeats");
         String maPhim = (String) session.getAttribute("maPhim");
         String maSuatChieu = (String) session.getAttribute("maSuatChieu");
-        @SuppressWarnings("unchecked")
         Map<String, Integer> selectedCombos = (Map<String, Integer>) session.getAttribute("selectedCombos");
-        @SuppressWarnings("unchecked")
         Map<String, Integer> selectedBapNuocs = (Map<String, Integer>) session.getAttribute("selectedBapNuocs");
-        @SuppressWarnings("unchecked")
         Map<String, BigDecimal> vePrices = (Map<String, BigDecimal>) session.getAttribute("vePrices");
-        @SuppressWarnings("unchecked")
         Map<String, BigDecimal> comboPrices = (Map<String, BigDecimal>) session.getAttribute("comboPrices");
-        @SuppressWarnings("unchecked")
         Map<String, BigDecimal> bapNuocPrices = (Map<String, BigDecimal>) session.getAttribute("bapNuocPrices");
         BigDecimal tongTien = (BigDecimal) session.getAttribute("tongTien");
         String maKhuyenMai = (String) session.getAttribute("maKhuyenMai");
@@ -409,7 +643,7 @@ public class BookingController {
             model.addAttribute("error", "Tổng tiền không hợp lệ");
             return "user/payment";
         }
-        
+
         try {
             Session dbSession = sessionFactory.getCurrentSession();
 
@@ -417,18 +651,14 @@ public class BookingController {
             String maDonHang = "DH" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8);
             donHang.setMaDonHang(maDonHang);
             donHang.setMaKhachHang(loggedInUser.getMaKhachHang());
-            
-            // Sử dụng mã khuyến mãi đã áp dụng trước đó
             if (maKhuyenMai != null && !maKhuyenMai.isEmpty()) {
                 donHang.setMaKhuyenMai(maKhuyenMai);
             }
-            
             donHang.setTongTien(tongTien);
             donHang.setDatHang(true);
             donHang.setNgayDat(new Date());
             donHang.setDiemSuDung(0);
 
-            // Tính điểm từ đơn hàng
             int diemDonHang = donHang.tinhDiem();
 
             if ("vnpay".equals(paymentMethod)) {
@@ -436,7 +666,7 @@ public class BookingController {
                 String vnp_IpAddr = request.getRemoteAddr();
                 String vnp_CreateDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
                 String vnp_OrderInfo = "Thanh toan don hang " + maDonHang;
-                
+
                 Map<String, String> vnp_Params = new TreeMap<>();
                 vnp_Params.put("vnp_Version", VNPayConfig.vnp_Version);
                 vnp_Params.put("vnp_Command", VNPayConfig.vnp_Command);
@@ -452,7 +682,7 @@ public class BookingController {
                 vnp_Params.put("vnp_ReturnUrl", returnUrl);
                 vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
                 vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
-                
+
                 StringBuilder hashData = new StringBuilder();
                 Iterator<Map.Entry<String, String>> iterator = vnp_Params.entrySet().iterator();
                 while (iterator.hasNext()) {
@@ -464,10 +694,10 @@ public class BookingController {
                         hashData.append('&');
                     }
                 }
-                
+
                 String vnp_SecureHash = hmacSHA512(VNPayConfig.vnp_HashSecret, hashData.toString());
                 vnp_Params.put("vnp_SecureHash", vnp_SecureHash);
-                
+
                 StringBuilder paymentUrl = new StringBuilder(VNPayConfig.vnp_Url);
                 paymentUrl.append('?');
                 Iterator<Map.Entry<String, String>> iteratorUrl = vnp_Params.entrySet().iterator();
@@ -480,19 +710,18 @@ public class BookingController {
                         paymentUrl.append('&');
                     }
                 }
-                
+
                 session.setAttribute("pendingOrder", donHang);
                 return "redirect:" + paymentUrl.toString();
             } else {
                 dbSession.save(donHang);
 
-                // Lưu chi tiết đơn hàng (vé, combo, bắp nước)
                 List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
                 Query gheQuery = dbSession.createQuery("FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
                 Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
                 suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
                 SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
-                gheQuery.setParameter("maPhongChieu", suatChieuEntity.getMaPhongChieu());
+                gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
                 List<GheEntity> gheList = gheQuery.list();
 
                 for (String seatId : selectedSeatList) {
@@ -504,17 +733,17 @@ public class BookingController {
                             break;
                         }
                     }
-                    VeEntity ve = new VeEntity();
-                    String maVe = "VE" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8);
-                    ve.setMaVe(maVe);
-                    ve.setMaKhachHang(loggedInUser.getMaKhachHang());
-                    ve.setMaSuatChieu(maSuatChieu);
-                    ve.setMaGhe(selectedGhe.getMaGhe());
-                    ve.setGiaVe(vePrices.get(selectedGhe.getMaGhe()));
-                    ve.setNgayMua(new Date());
-                    ve.setTrangThai("Đã thanh toán");
-                    ve.setDonHang(donHang);
-                    dbSession.save(ve);
+                    if (selectedGhe != null) {
+                        Query veQuery = dbSession.createQuery(
+                                "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu AND v.maGhe = :maGhe AND v.donHang IS NULL");
+                        veQuery.setParameter("maSuatChieu", maSuatChieu);
+                        veQuery.setParameter("maGhe", selectedGhe.getMaGhe());
+                        VeEntity ve = (VeEntity) veQuery.uniqueResult();
+                        if (ve != null) {
+                            ve.setDonHang(donHang);
+                            dbSession.update(ve);
+                        }
+                    }
                 }
 
                 if (selectedCombos != null && !selectedCombos.isEmpty()) {
@@ -555,18 +784,17 @@ public class BookingController {
                 thanhToan.setTrangThai("Thành công");
                 dbSession.save(thanhToan);
 
-                // Cập nhật điểm cho khách hàng
                 Query khachHangQuery = dbSession.createQuery("FROM KhachHangEntity kh WHERE kh.maKhachHang = :maKhachHang");
                 khachHangQuery.setParameter("maKhachHang", loggedInUser.getMaKhachHang());
                 KhachHangEntity khachHang = (KhachHangEntity) khachHangQuery.uniqueResult();
                 if (khachHang != null) {
                     khachHang.congDiem(diemDonHang);
                     dbSession.update(khachHang);
-                    // Cập nhật lại session để phản ánh điểm mới
                     loggedInUser.setTongDiem(khachHang.getTongDiem());
                     session.setAttribute("loggedInUser", loggedInUser);
                 }
 
+                messagingTemplate.convertAndSend("/topic/seats/" + maSuatChieu, selectedSeatList);
                 clearSession(session);
 
                 model.addAttribute("success", "Thanh toán thành công! Mã đơn hàng: " + maDonHang + ". Bạn nhận được " + diemDonHang + " điểm.");
@@ -623,11 +851,70 @@ public class BookingController {
                         return "user/payment";
                     }
 
-                    // Tính điểm từ đơn hàng
                     int diemDonHang = donHang.tinhDiem();
-
                     dbSession.save(donHang);
-                    saveOrderDetails(dbSession, donHang, session);
+
+                    String selectedSeats = (String) session.getAttribute("selectedSeats");
+                    String maSuatChieu = (String) session.getAttribute("maSuatChieu");
+                    List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
+                    Query gheQuery = dbSession.createQuery("FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
+                    Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
+                    suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
+                    SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
+                    gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
+                    List<GheEntity> gheList = gheQuery.list();
+
+                    for (String seatId : selectedSeatList) {
+                        GheEntity selectedGhe = null;
+                        for (GheEntity ghe : gheList) {
+                            String fullSeatId = ghe.getTenHang() + ghe.getSoGhe();
+                            if (fullSeatId.equals(seatId.trim())) {
+                                selectedGhe = ghe;
+                                break;
+                            }
+                        }
+                        if (selectedGhe != null) {
+                            Query veQuery = dbSession.createQuery(
+                                    "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu AND v.maGhe = :maGhe AND v.donHang IS NULL");
+                            veQuery.setParameter("maSuatChieu", maSuatChieu);
+                            veQuery.setParameter("maGhe", selectedGhe.getMaGhe());
+                            VeEntity ve = (VeEntity) veQuery.uniqueResult();
+                            if (ve != null) {
+                                ve.setDonHang(donHang);
+                                dbSession.update(ve);
+                            }
+                        }
+                    }
+
+                    Map<String, Integer> selectedCombos = (Map<String, Integer>) session.getAttribute("selectedCombos");
+                    Map<String, Integer> selectedBapNuocs = (Map<String, Integer>) session.getAttribute("selectedBapNuocs");
+                    if (selectedCombos != null && !selectedCombos.isEmpty()) {
+                        for (Map.Entry<String, Integer> combo : selectedCombos.entrySet()) {
+                            String maCombo = combo.getKey();
+                            int quantity = combo.getValue();
+                            if (quantity > 0) {
+                                ChiTietDonHangComboEntity chiTietCombo = new ChiTietDonHangComboEntity();
+                                chiTietCombo.setDonHang(donHang);
+                                chiTietCombo.setMaCombo(maCombo);
+                                chiTietCombo.setSoLuong(quantity);
+                                dbSession.save(chiTietCombo);
+                            }
+                        }
+                    }
+
+                    if (selectedBapNuocs != null && !selectedBapNuocs.isEmpty()) {
+                        for (Map.Entry<String, Integer> bapNuoc : selectedBapNuocs.entrySet()) {
+                            String maBapNuoc = bapNuoc.getKey();
+                            int quantity = bapNuoc.getValue();
+                            if (quantity > 0) {
+                                ChiTietDonHangBapNuocEntity chiTietBapNuoc = new ChiTietDonHangBapNuocEntity();
+                                chiTietBapNuoc.setDonHang(donHang);
+                                chiTietBapNuoc.setMaBapNuoc(maBapNuoc);
+                                chiTietBapNuoc.setSoLuong(quantity);
+                                dbSession.save(chiTietBapNuoc);
+                            }
+                        }
+                    }
 
                     ThanhToanEntity thanhToan = new ThanhToanEntity();
                     String maThanhToan = "TT" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8);
@@ -639,7 +926,6 @@ public class BookingController {
                     thanhToan.setTrangThai("Thành công");
                     dbSession.save(thanhToan);
 
-                    // Cập nhật điểm cho khách hàng
                     KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
                     Query khachHangQuery = dbSession.createQuery("FROM KhachHangEntity kh WHERE kh.maKhachHang = :maKhachHang");
                     khachHangQuery.setParameter("maKhachHang", loggedInUser.getMaKhachHang());
@@ -647,11 +933,11 @@ public class BookingController {
                     if (khachHang != null) {
                         khachHang.congDiem(diemDonHang);
                         dbSession.update(khachHang);
-                        // Cập nhật lại session
                         loggedInUser.setTongDiem(khachHang.getTongDiem());
                         session.setAttribute("loggedInUser", loggedInUser);
                     }
 
+                    messagingTemplate.convertAndSend("/topic/seats/" + maSuatChieu, selectedSeatList);
                     clearSession(session);
                     session.removeAttribute("pendingOrder");
 
@@ -675,38 +961,26 @@ public class BookingController {
     @Transactional
     @RequestMapping(value = "/confirm-booking", method = RequestMethod.POST)
     public String confirmBooking(@RequestParam("maPhim") String maPhim,
-                                 @RequestParam("maSuatChieu") String maSuatChieu,
-                                 @RequestParam("selectedSeats") String selectedSeats,
-                                 HttpSession session,
-                                 Model model) {
+                                @RequestParam("maSuatChieu") String maSuatChieu,
+                                @RequestParam("selectedSeats") String selectedSeats,
+                                HttpSession session,
+                                Model model) {
         if (selectedSeats == null || selectedSeats.isEmpty()) {
             model.addAttribute("error", "Vui lòng chọn ít nhất một ghế");
-            ModelAndView mav = new ModelAndView("forward:/booking/select-seats");
-            mav.addObject("maPhim", maPhim);
-            mav.addObject("maSuatChieu", maSuatChieu);
-            return "forward:/booking/select-seats";
+            return showSeatSelection(maPhim, maSuatChieu, session, model);
         }
 
-        ModelAndView mav = new ModelAndView("forward:/booking/select-food");
-        mav.addObject("maPhim", maPhim);
-        mav.addObject("maSuatChieu", maSuatChieu);
-        mav.addObject("selectedSeats", selectedSeats);
-        return "forward:/booking/select-food";
+        return "forward:/booking/reserve-seats";
     }
 
     @Transactional
     @RequestMapping(value = "/confirm-all", method = RequestMethod.POST)
     public String confirmAll(@RequestParam("maPhim") String maPhim,
-                             @RequestParam("maSuatChieu") String maSuatChieu,
-                             @RequestParam("selectedSeats") String selectedSeats,
-                             @RequestParam Map<String, String> allParams,
-                             HttpSession session,
-                             Model model) {
-        ModelAndView mav = new ModelAndView("forward:/booking/select-payment");
-        mav.addObject("maPhim", maPhim);
-        mav.addObject("maSuatChieu", maSuatChieu);
-        mav.addObject("selectedSeats", selectedSeats);
-        allParams.forEach(mav::addObject);
+                            @RequestParam("maSuatChieu") String maSuatChieu,
+                            @RequestParam("selectedSeats") String selectedSeats,
+                            @RequestParam Map<String, String> allParams,
+                            HttpSession session,
+                            Model model) {
         return "forward:/booking/select-payment";
     }
 
@@ -726,76 +1000,6 @@ public class BookingController {
         }
     }
 
-    private void saveOrderDetails(Session dbSession, DonHangEntity donHang, HttpSession session) {
-        String selectedSeats = (String) session.getAttribute("selectedSeats");
-        String maSuatChieu = (String) session.getAttribute("maSuatChieu");
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> selectedCombos = (Map<String, Integer>) session.getAttribute("selectedCombos");
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> selectedBapNuocs = (Map<String, Integer>) session.getAttribute("selectedBapNuocs");
-        @SuppressWarnings("unchecked")
-        Map<String, BigDecimal> vePrices = (Map<String, BigDecimal>) session.getAttribute("vePrices");
-
-        List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
-        Query gheQuery = dbSession.createQuery("FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
-        Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
-        suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
-        SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
-        gheQuery.setParameter("maPhongChieu", suatChieuEntity.getMaPhongChieu());
-        List<GheEntity> gheList = gheQuery.list();
-
-        KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
-        for (String seatId : selectedSeatList) {
-            GheEntity selectedGhe = null;
-            for (GheEntity ghe : gheList) {
-                String fullSeatId = ghe.getTenHang() + ghe.getSoGhe();
-                if (fullSeatId.equals(seatId.trim())) {
-                    selectedGhe = ghe;
-                    break;
-                }
-            }
-            VeEntity ve = new VeEntity();
-            String maVe = "VE" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8);
-            ve.setMaVe(maVe);
-            ve.setMaKhachHang(loggedInUser.getMaKhachHang());
-            ve.setMaSuatChieu(maSuatChieu);
-            ve.setMaGhe(selectedGhe.getMaGhe());
-            ve.setGiaVe(vePrices.get(selectedGhe.getMaGhe()));
-            ve.setNgayMua(new Date());
-            ve.setTrangThai("Đã thanh toán");
-            ve.setDonHang(donHang); // Gán trực tiếp DonHangEntity
-            dbSession.save(ve);
-        }
-
-        if (selectedCombos != null && !selectedCombos.isEmpty()) {
-            for (Map.Entry<String, Integer> combo : selectedCombos.entrySet()) {
-                String maCombo = combo.getKey();
-                int quantity = combo.getValue();
-                if (quantity > 0) {
-                    ChiTietDonHangComboEntity chiTietCombo = new ChiTietDonHangComboEntity();
-                    chiTietCombo.setDonHang(donHang);
-                    chiTietCombo.setMaCombo(maCombo);
-                    chiTietCombo.setSoLuong(quantity);
-                    dbSession.save(chiTietCombo);
-                }
-            }
-        }
-
-        if (selectedBapNuocs != null && !selectedBapNuocs.isEmpty()) {
-            for (Map.Entry<String, Integer> bapNuoc : selectedBapNuocs.entrySet()) {
-                String maBapNuoc = bapNuoc.getKey();
-                int quantity = bapNuoc.getValue();
-                if (quantity > 0) {
-                    ChiTietDonHangBapNuocEntity chiTietBapNuoc = new ChiTietDonHangBapNuocEntity();
-                    chiTietBapNuoc.setDonHang(donHang);
-                    chiTietBapNuoc.setMaBapNuoc(maBapNuoc);
-                    chiTietBapNuoc.setSoLuong(quantity);
-                    dbSession.save(chiTietBapNuoc);
-                }
-            }
-        }
-    }
-
     private void clearSession(HttpSession session) {
         session.removeAttribute("selectedSeats");
         session.removeAttribute("maPhim");
@@ -810,5 +1014,8 @@ public class BookingController {
         session.removeAttribute("appliedPromoCode");
         session.removeAttribute("discountAmount");
         session.removeAttribute("maKhuyenMai");
+        session.removeAttribute("pendingOrder");
+        session.removeAttribute("redirectMaPhim");
+        session.removeAttribute("redirectMaSuatChieu");
     }
 }

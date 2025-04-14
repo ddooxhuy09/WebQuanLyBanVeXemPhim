@@ -6,146 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css?v=1.0">
     <title>Chọn Combo - Galaxy Cinema</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-        }
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #fff;
-            padding: 10px 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        .navbar .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff5722;
-        }
-        .nav-links {
-            list-style: none;
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links li {
-            list-style: none;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            font-size: 16px;
-            font-weight: bold;
-            transition: color 0.3s;
-        }
-        .nav-links a:hover {
-            color: #ff5722;
-        }
-        .login-btn {
-            background-color: #ff5722;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-        .login-btn:hover {
-            background-color: #e64a19;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        h5 {
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-        .combo-list {
-            display: flex;
-            flex-direction: column;
-        }
-        .combo-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #ccc;
-            padding: 1rem 0;
-        }
-        .combo-item img {
-            width: 100px;
-            height: 70px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        .combo-info {
-            flex-grow: 1;
-            margin-left: 1rem;
-        }
-        .combo-info h6 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        .combo-info small {
-            font-size: 14px;
-            font-style: italic;
-            color: #666;
-        }
-        .combo-info strong {
-            color: #dc3545;
-        }
-        .quantity-controls {
-            display: flex;
-            align-items: center;
-        }
-        .quantity-controls button {
-            width: 30px;
-            height: 30px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            cursor: pointer;
-        }
-        .quantity-controls button:disabled {
-            background-color: #e9ecef;
-            cursor: not-allowed;
-        }
-        .quantity-controls span {
-            margin: 0 10px;
-            font-size: 16px;
-        }
-        .confirm-btn {
-            width: 100%;
-            padding: 1rem;
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-top: 2rem;
-            transition: background-color 0.3s ease;
-        }
-        .confirm-btn:hover {
-            background-color: #1976d2;
-        }
-        .error-message {
-            color: red;
-            text-align: center;
-            margin: 20px;
-        }
-        .success-message {
-            color: green;
-            text-align: center;
-            margin: 20px;
-        }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -157,15 +19,41 @@
             <li><a href="#">Rạp/Giá Vé</a></li>
             <c:choose>
                 <c:when test="${not empty sessionScope.loggedInUser}">
-				    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
-				    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
-				</c:when>
+                    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
+                </c:when>
                 <c:otherwise>
                     <li><a href="${pageContext.request.contextPath}/auth/login" class="login-btn">Đăng Nhập</a></li>
                 </c:otherwise>
             </c:choose>
         </ul>
     </nav>
+
+    <!-- Thanh tiến trình -->
+    <div class="progress-container">
+        <div class="progress-step completed" onclick="goToStep(1)">
+            <div class="circle">1</div>
+            <span>Chọn phim</span>
+        </div>
+        <div class="progress-step completed" onclick="goToStep(2)">
+            <div class="circle">2</div>
+            <span>Chọn ghế</span>
+        </div>
+        <div class="progress-step active" onclick="goToStep(3)">
+            <div class="circle">3</div>
+            <span>Chọn đồ ăn</span>
+        </div>
+        <div class="progress-step" onclick="goToStep(4)">
+            <div class="circle">4</div>
+            <span>Thanh toán</span>
+        </div>
+    </div>
+
+    <!-- Bộ đếm giờ -->
+    <div class="timer-container">
+        <span>Thời gian còn lại: </span>
+        <span id="timer">10:00</span>
+    </div>
 
     <div class="container">
         <c:if test="${not empty error}">
@@ -241,7 +129,6 @@
         </form>
     </div>
 
-    <!-- Giữ nguyên footer -->
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
@@ -281,6 +168,47 @@
     </footer>
 
     <script>
+        let timeLeft = sessionStorage.getItem("timeLeft") || (10 * 60);
+        let timerId;
+
+        function startBookingTimer() {
+            timerId = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    alert("Hết thời gian đặt vé! Vui lòng bắt đầu lại.");
+                    window.location.href = "${pageContext.request.contextPath}/home/";
+                    return;
+                }
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById("timer").textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        function goToStep(step) {
+            if (step === 1) {
+                window.location.href = "${pageContext.request.contextPath}/movie-detail?id=${maPhim}";
+            } else if (step === 2) {
+                const form = document.createElement("form");
+                form.method = "post";
+                form.action = "${pageContext.request.contextPath}/booking/select-seats";
+                const maPhimInput = document.createElement("input");
+                maPhimInput.type = "hidden";
+                maPhimInput.name = "maPhim";
+                maPhimInput.value = "${maPhim}";
+                const maSuatChieuInput = document.createElement("input");
+                maSuatChieuInput.type = "hidden";
+                maSuatChieuInput.name = "maSuatChieu";
+                maSuatChieuInput.value = "${maSuatChieu}";
+                form.appendChild(maPhimInput);
+                form.appendChild(maSuatChieuInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
         function increaseQuantity(itemId) {
             const quantityElement = document.getElementById('quantity_' + itemId);
             const inputElement = document.getElementById('input_' + itemId);
@@ -306,6 +234,12 @@
                 }
             }
         }
+
+        document.addEventListener("DOMContentLoaded", startBookingTimer);
+
+        window.addEventListener("beforeunload", () => {
+            sessionStorage.setItem("timeLeft", timeLeft);
+        });
     </script>
 </body>
 </html>

@@ -98,6 +98,7 @@
                             <th>URL Poster</th>
                             <th>URL Trailer</th>
                             <th>Giá Vé</th>
+                            <th>Mô Tả</th> <!-- Thêm cột Mô Tả -->
                             <th>Hành Động</th>
                         </tr>
                     </thead>
@@ -118,6 +119,7 @@
                                 <td><a href="${phim.urlPoster}" target="_blank">Xem</a></td>
                                 <td><a href="${phim.urlTrailer}" target="_blank">Xem</a></td>
                                 <td>${phim.giaVe}</td>
+                                <td>${phim.moTa}</td> <!-- Hiển thị Mô Tả -->
                                 <td>
                                     <button class="custom-btn btn-sm mr-1" onclick="editMovie('${phim.maPhim}')">Sửa</button>
                                     <button class="custom-btn btn-sm" onclick="confirmDeleteMovie('${phim.maPhim}', '${phim.tenPhim}')">Xóa</button>
@@ -214,7 +216,7 @@
                         </div>
                         <div class="form-group">
                             <label for="thoiLuong">Thời Lượng (phút)</label>
-                            <input type="number" class="form-control" id="thoiLuong" name="thoiLuong" value="${phimModel.thoiLuong}" required>
+                            <input type="number" class="form-control" id="thoiLuong" name_plan="thoiLuong" value="${phimModel.thoiLuong}" required>
                         </div>
                         <div class="form-group">
                             <label for="urlPoster">URL Poster</label>
@@ -227,6 +229,10 @@
                         <div class="form-group">
                             <label for="giaVe">Giá Vé</label>
                             <input type="number" step="0.01" class="form-control" id="giaVe" name="giaVe" value="${phimModel.giaVe}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="moTa">Mô Tả</label>
+                            <textarea class="form-control" id="moTa" name="moTa" rows="4">${phimModel.moTa}</textarea>
                         </div>
                     </div>
                 </div>

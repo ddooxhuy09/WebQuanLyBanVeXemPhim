@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css" />
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css?v=1.0" />
     <title>Movie Detail - Galaxy Cinema</title>
 </head>
 <body>
@@ -19,15 +19,41 @@
             <li><a href="#">Rạp/Giá Vé</a></li>
             <c:choose>
                 <c:when test="${not empty sessionScope.loggedInUser}">
-				    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
-				    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
-				</c:when>
+                    <li><a href="${pageContext.request.contextPath}/user/profile">Xin chào, ${sessionScope.loggedInUser.tenKhachHang}</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/logout" class="login-btn">Đăng Xuất</a></li>
+                </c:when>
                 <c:otherwise>
                     <li><a href="${pageContext.request.contextPath}/auth/login" class="login-btn">Đăng Nhập</a></li>
                 </c:otherwise>
             </c:choose>
         </ul>
     </nav>
+
+    <!-- Thanh tiến trình -->
+    <div class="progress-container">
+        <div class="progress-step active" onclick="goToStep(1)">
+            <div class="circle">1</div>
+            <span>Chọn phim</span>
+        </div>
+        <div class="progress-step" onclick="goToStep(2)">
+            <div class="circle">2</div>
+            <span>Chọn ghế</span>
+        </div>
+        <div class="progress-step" onclick="goToStep(3)">
+            <div class="circle">3</div>
+            <span>Chọn đồ ăn</span>
+        </div>
+        <div class="progress-step" onclick="goToStep(4)">
+            <div class="circle">4</div>
+            <span>Thanh toán</span>
+        </div>
+    </div>
+
+    <!-- Bộ đếm giờ -->
+    <div class="timer-container">
+        <span>Thời gian còn lại: </span>
+        <span id="timer">10:00</span>
+    </div>
 
     <c:if test="${not empty error}">
         <div class="error-message" style="text-align: center; color: red; margin: 20px;">
@@ -49,7 +75,12 @@
                         <span class="age-restriction" id="movie-age">${phim.doTuoi}</span>
                         <span class="duration" id="movie-duration">${phim.thoiLuong} phút</span>
                     </div>
-                    <p class="synopsis" id="movie-synopsis">Không có mô tả</p>
+                    <p class="synopsis" id="movie-synopsis">
+                        <c:choose>
+                            <c:when test="${not empty phim.moTa}">${phim.moTa}</c:when>
+                            <c:otherwise>Không có mô tả</c:otherwise>
+                        </c:choose>
+                    </p>
                     <div class="movie-details">
                         <p><strong>Nhà sản xuất:</strong> <span id="movie-nhaSx">${phim.nhaSanXuat}</span></p>
                         <p><strong>Quốc gia:</strong> <span id="movie-quocGia">${phim.quocGia}</span></p>
@@ -149,6 +180,31 @@
     </footer>
 
     <script>
+        let timeLeft = 10 * 60; // 10 phút tính bằng giây
+        let timerId;
+
+        function startTimer() {
+            timerId = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    alert("Hết thời gian đặt vé! Vui lòng bắt đầu lại.");
+                    window.location.href = "${pageContext.request.contextPath}/home/";
+                    return;
+                }
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById("timer").textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        function goToStep(step) {
+            if (step !== 1) {
+                alert("Vui lòng chọn suất chiếu trước khi chuyển sang bước tiếp theo!");
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             const dateContainer = document.getElementById("dateContainer");
             const theaters = document.querySelectorAll(".theater");
@@ -197,6 +253,12 @@
                 const firstDate = sortedDates[0];
                 filterShowtimes(firstDate);
             }
+
+            startTimer();
+        });
+
+        window.addEventListener("beforeunload", () => {
+            sessionStorage.setItem("timeLeft", timeLeft);
         });
     </script>
 </body>

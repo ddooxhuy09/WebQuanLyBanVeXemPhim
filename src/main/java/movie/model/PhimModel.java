@@ -22,8 +22,9 @@ public class PhimModel {
     private String urlPoster;
     private String urlTrailer;
     private BigDecimal giaVe;
-    private List<String> maTheLoais; // Danh sách thể loại
-    private List<String> maDienViens; // Danh sách diễn viên
+    private String moTa; // Thêm trường moTa
+    private List<String> maTheLoais;
+    private List<String> maDienViens;
 
     // Constructors
     public PhimModel() {
@@ -45,6 +46,7 @@ public class PhimModel {
             this.urlPoster = entity.getUrlPoster();
             this.urlTrailer = entity.getUrlTrailer();
             this.giaVe = entity.getGiaVe();
+            this.moTa = entity.getMoTa(); // Ánh xạ MoTa
             this.maTheLoais = new ArrayList<>();
             this.maDienViens = new ArrayList<>();
             if (entity.getTheLoais() != null) {
@@ -81,10 +83,12 @@ public class PhimModel {
     public void setThoiLuong(int thoiLuong) { this.thoiLuong = thoiLuong; }
     public String getUrlPoster() { return urlPoster; }
     public void setUrlPoster(String urlPoster) { this.urlPoster = urlPoster; }
-    public String getUrlTrailer() { return urlTrailer; }
     public void setUrlTrailer(String urlTrailer) { this.urlTrailer = urlTrailer; }
+    public String getUrlTrailer() { return urlTrailer; }
     public BigDecimal getGiaVe() { return giaVe; }
     public void setGiaVe(BigDecimal giaVe) { this.giaVe = giaVe; }
+    public String getMoTa() { return moTa; } // Getter cho moTa
+    public void setMoTa(String moTa) { this.moTa = moTa; } // Setter cho moTa
     public List<String> getMaTheLoais() { return maTheLoais; }
     public void setMaTheLoais(List<String> maTheLoais) { this.maTheLoais = maTheLoais; }
     public List<String> getMaDienViens() { return maDienViens; }

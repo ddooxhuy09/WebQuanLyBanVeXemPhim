@@ -20,38 +20,37 @@
     <mvc:resources mapping="/resources/**" location="/resources/" />
 
     <!-- Quét tất cả các package trong movie -->
-    <context:component-scan base-package="movie" />
+    <context:component-scan base-package="movie.controller, movie.entity, movie.config, movie.interceptor, movie.model, movie.service" />
     
-    <!-- Cấu hình Tiles -->
+    <!-- View Resolver để ánh xạ JSP (ưu tiên cho user) -->
+    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views/" />
+        <property name="suffix" value=".jsp" />
+        <property name="order" value="0" />
+    </bean>
+
+    <!-- Cấu hình Tiles (cho admin) -->
     <bean id="tilesConfigurer" class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
         <property name="definitions">
             <list>
-                <!-- Đảm bảo đường dẫn này khớp với vị trí thực tế của tiles-definitions.xml -->
                 <value>/WEB-INF/configs/tiles-definitions.xml</value>
             </list>
         </property>
     </bean>
 
-    <!-- View Resolver cho Tiles -->
+    <!-- View Resolver cho Tiles (thứ tự thấp hơn JSP) -->
     <bean id="tilesViewResolver" class="org.springframework.web.servlet.view.tiles3.TilesViewResolver">
-        <property name="order" value="0" />
-    </bean>
-
-    <!-- View Resolver để ánh xạ JSP (dùng cho các trang không dùng Tiles, như login) -->
-    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-        <property name="prefix" value="/WEB-INF/views/" />
-        <property name="suffix" value=".jsp" />
         <property name="order" value="1" />
     </bean>
     
     <!-- Cấu hình Interceptor -->
     <mvc:interceptors>
-	    <mvc:interceptor>
-	        <mvc:mapping path="/**"/>
-	        <mvc:exclude-mapping path="/resources/**"/>
-	        <bean class="movie.interceptor.AuthInterceptor"/>
-	    </mvc:interceptor>
-	</mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <mvc:exclude-mapping path="/resources/**"/>
+            <bean class="movie.interceptor.AuthInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
 
     <!-- Cấu hình Hibernate -->
     <bean id="sessionFactory" 
@@ -79,4 +78,6 @@
           class="org.springframework.orm.hibernate4.HibernateTransactionManager" 
           p:sessionFactory-ref="sessionFactory" />
     <tx:annotation-driven transaction-manager="transactionManager"/>
+
+
 </beans>

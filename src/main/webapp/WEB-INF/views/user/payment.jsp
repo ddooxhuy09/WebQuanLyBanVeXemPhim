@@ -6,35 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css?v=1.0">
     <title>Thanh Toán - Galaxy Cinema</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-        .navbar { display: flex; justify-content: space-between; align-items: center; background-color: #fff; padding: 10px 20px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        .navbar .logo { font-size: 24px; font-weight: bold; color: #ff5722; }
-        .nav-links { list-style: none; display: flex; gap: 20px; }
-        .nav-links li { list-style: none; }
-        .nav-links a { text-decoration: none; color: #333; font-size: 16px; font-weight: bold; transition: color 0.3s; }
-        .nav-links a:hover { color: #ff5722; }
-        .login-btn { background-color: #ff5722; color: #fff; padding: 8px 16px; border-radius: 20px; font-weight: bold; }
-        .login-btn:hover { background-color: #e64a19; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-        .card { padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border: none; background: #fff; border-radius: 8px; }
-        h5 { font-weight: bold; margin-bottom: 1rem; color: #1a73e8; }
-        .form-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .form-control { max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px 0 0 4px; }
-        .btn-warning { background-color: #ffca28; color: #333; padding: 8px 16px; border: none; border-radius: 0 4px 4px 0; font-weight: bold; cursor: pointer; }
-        .btn-warning:hover { background-color: #ffb300; }
-        .payment-option { padding: 15px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; cursor: pointer; }
-        .payment-option.selected { border-color: #1a73e8; background-color: #f8f9fa; }
-        .payment-option img { width: 50px; height: 30px; object-fit: contain; margin-right: 15px; }
-        .confirm-btn { width: 100%; padding: 1rem; background-color: #1a73e8; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; margin-top: 2rem; }
-        .confirm-btn:hover { background-color: #1976d2; }
-        .error-message { color: red; text-align: center; margin: 20px; padding: 10px; background-color: #fff3f3; border-left: 4px solid red; border-radius: 4px; }
-        .success-message { color: green; text-align: center; margin: 20px; padding: 10px; background-color: #f0fff0; border-left: 4px solid green; border-radius: 4px; }
-        .discount-info { margin: 15px 0; padding: 12px; background: #e8f4fd; border-radius: 4px; border-left: 4px solid #1a73e8; }
-        .discount-badge { display: inline-block; padding: 3px 8px; background-color: #1a73e8; color: white; font-size: 12px; border-radius: 12px; margin-right: 8px; }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -55,6 +28,32 @@
             </c:choose>
         </ul>
     </nav>
+
+    <!-- Thanh tiến trình -->
+    <div class="progress-container">
+        <div class="progress-step completed" onclick="goToStep(1)">
+            <div class="circle">1</div>
+            <span>Chọn phim</span>
+        </div>
+        <div class="progress-step completed" onclick="goToStep(2)">
+            <div class="circle">2</div>
+            <span>Chọn ghế</span>
+        </div>
+        <div class="progress-step completed" onclick="goToStep(3)">
+            <div class="circle">3</div>
+            <span>Chọn đồ ăn</span>
+        </div>
+        <div class="progress-step active" onclick="goToStep(4)">
+            <div class="circle">4</div>
+            <span>Thanh toán</span>
+        </div>
+    </div>
+
+    <!-- Bộ đếm giờ -->
+    <div class="timer-container">
+        <span>Thời gian còn lại: </span>
+        <span id="timer">10:00</span>
+    </div>
 
     <div class="container">
         <c:if test="${not empty error}">
@@ -114,6 +113,68 @@
     </div>
 
     <script>
+        let timeLeft = sessionStorage.getItem("timeLeft") || (10 * 60);
+        let timerId;
+
+        function startBookingTimer() {
+            timerId = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    alert("Hết thời gian đặt vé! Vui lòng bắt đầu lại.");
+                    window.location.href = "${pageContext.request.contextPath}/home/";
+                    return;
+                }
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById("timer").textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        function goToStep(step) {
+            if (step === 1) {
+                window.location.href = "${pageContext.request.contextPath}/movie-detail?id=${maPhim}";
+            } else if (step === 2) {
+                const form = document.createElement("form");
+                form.method = "post";
+                form.action = "${pageContext.request.contextPath}/booking/select-seats";
+                const maPhimInput = document.createElement("input");
+                maPhimInput.type = "hidden";
+                maPhimInput.name = "maPhim";
+                maPhimInput.value = "${maPhim}";
+                const maSuatChieuInput = document.createElement("input");
+                maSuatChieuInput.type = "hidden";
+                maSuatChieuInput.name = "maSuatChieu";
+                maSuatChieuInput.value = "${maSuatChieu}";
+                form.appendChild(maPhimInput);
+                form.appendChild(maSuatChieuInput);
+                document.body.appendChild(form);
+                form.submit();
+            } else if (step === 3) {
+                const form = document.createElement("form");
+                form.method = "post";
+                form.action = "${pageContext.request.contextPath}/booking/select-food";
+                const maPhimInput = document.createElement("input");
+                maPhimInput.type = "hidden";
+                maPhimInput.name = "maPhim";
+                maPhimInput.value = "${maPhim}";
+                const maSuatChieuInput = document.createElement("input");
+                maSuatChieuInput.type = "hidden";
+                maSuatChieuInput.name = "maSuatChieu";
+                maSuatChieuInput.value = "${maSuatChieu}";
+                const selectedSeatsInput = document.createElement("input");
+                selectedSeatsInput.type = "hidden";
+                selectedSeatsInput.name = "selectedSeats";
+                selectedSeatsInput.value = "${selectedSeats}";
+                form.appendChild(maPhimInput);
+                form.appendChild(maSuatChieuInput);
+                form.appendChild(selectedSeatsInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
         function selectPaymentMethod(method) {
             document.querySelectorAll('.payment-option').forEach(option => {
                 option.classList.remove('selected');
@@ -134,7 +195,6 @@
                     parentOption.classList.add('selected');
                 }
             } else {
-                // Mặc định chọn phương thức đầu tiên nếu chưa có phương thức nào được chọn
                 const firstOption = document.querySelector('.payment-option');
                 if (firstOption) {
                     firstOption.classList.add('selected');
@@ -144,7 +204,16 @@
                     }
                 }
             }
+            startBookingTimer();
         };
+
+        document.getElementById("paymentForm").addEventListener("submit", function() {
+            sessionStorage.removeItem("timeLeft");
+        });
+
+        window.addEventListener("beforeunload", () => {
+            sessionStorage.setItem("timeLeft", timeLeft);
+        });
     </script>
 </body>
 </html>

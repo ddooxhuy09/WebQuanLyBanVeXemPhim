@@ -24,11 +24,8 @@ public class VeEntity {
     private BigDecimal giaVe;
 
     @Column(name = "NgayMua")
-    @Temporal(TemporalType.DATE)
+    @Temporal(TemporalType.TIMESTAMP)
     private Date ngayMua;
-
-    @Column(name = "TrangThai", columnDefinition = "nvarchar(20)")
-    private String trangThai;
 
     @ManyToOne
     @JoinColumn(name = "MaKhachHang", referencedColumnName = "MaKhachHang", insertable = false, updatable = false)
@@ -44,9 +41,9 @@ public class VeEntity {
 
     @ManyToOne
     @JoinColumn(name = "MaDonHang", referencedColumnName = "MaDonHang")
-    private DonHangEntity donHang; // Thêm mối quan hệ với DonHangEntity
+    private DonHangEntity donHang;
 
-    // Getters và Setters
+    // Getters and Setters
     public String getMaVe() { return maVe; }
     public void setMaVe(String maVe) { this.maVe = maVe; }
     public String getMaKhachHang() { return maKhachHang; }
@@ -59,8 +56,6 @@ public class VeEntity {
     public void setGiaVe(BigDecimal giaVe) { this.giaVe = giaVe; }
     public Date getNgayMua() { return ngayMua; }
     public void setNgayMua(Date ngayMua) { this.ngayMua = ngayMua; }
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
     public KhachHangEntity getKhachHang() { return khachHang; }
     public void setKhachHang(KhachHangEntity khachHang) { this.khachHang = khachHang; }
     public SuatChieuEntity getSuatChieu() { return suatChieu; }
