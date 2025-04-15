@@ -292,17 +292,18 @@
                 const isPaid = seat.getAttribute('data-is-paid') === 'true';
                 const isReserved = seat.getAttribute('data-is-reserved') === 'true';
                 seat.classList.remove('selected', 'available', 'reserved', 'occupied');
+                
                 if (isPaid) {
                     seat.classList.add('occupied');
+                } else if (selectedSeats.includes(seatId)) {
+                    // Ghế đã chọn bởi người dùng hiện tại
+                    seat.classList.add('selected');
                 } else if (isReserved && !selectedSeats.includes(seatId)) {
                     seat.classList.add('reserved');
                 } else {
                     seat.classList.add('available');
-                    if (selectedSeats.includes(seatId)) {
-                        seat.classList.remove('available');
-                        seat.classList.add('selected');
-                    }
                 }
+                
                 seat.addEventListener('click', function(e) {
                     e.stopPropagation();
                     toggleSeatSelection(this, seatId);
@@ -317,7 +318,9 @@
                 console.log('Cannot select seat ' + seatId + ': occupied');
                 return;
             }
+            
             if (seatElement.classList.contains('selected')) {
+                // Bỏ chọn ghế
                 selectedSeats = selectedSeats.filter(id => id !== seatId);
                 seatElement.classList.remove('selected');
                 seatElement.classList.add('available');
@@ -325,10 +328,7 @@
                 seatElement.removeAttribute('data-is-reserved');
                 seatElement.querySelector('.timer')?.remove();
             } else if (seatElement.classList.contains('available')) {
-                if (seatElement.classList.contains('reserved') && !selectedSeats.includes(seatId)) {
-                    console.log('Cannot select seat ' + seatId + ': reserved by others');
-                    return;
-                }
+                // Chọn ghế mới
                 selectedSeats.push(seatId);
                 seatElement.classList.remove('available');
                 seatElement.classList.add('selected');
