@@ -8,6 +8,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css?v=1.0" />
     <title>Movie Detail - Galaxy Cinema</title>
+    <style>
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #555;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .back-btn:hover {
+            background-color: #777;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -29,117 +43,114 @@
         </ul>
     </nav>
 
-    <!-- Thanh tiến trình -->
-    <div class="progress-container">
-        <div class="progress-step active" onclick="goToStep(1)">
-            <div class="circle">1</div>
-            <span>Chọn phim</span>
-        </div>
-        <div class="progress-step" onclick="goToStep(2)">
-            <div class="circle">2</div>
-            <span>Chọn ghế</span>
-        </div>
-        <div class="progress-step" onclick="goToStep(3)">
-            <div class="circle">3</div>
-            <span>Chọn đồ ăn</span>
-        </div>
-        <div class="progress-step" onclick="goToStep(4)">
-            <div class="circle">4</div>
-            <span>Thanh toán</span>
-        </div>
-    </div>
+    <div class="container">
+        <a href="${pageContext.request.contextPath}/home/" class="back-btn">Quay lại</a>
 
-    <!-- Bộ đếm giờ -->
-    <div class="timer-container">
-        <span>Thời gian còn lại: </span>
-        <span id="timer">10:00</span>
-    </div>
-
-    <c:if test="${not empty error}">
-        <div class="error-message" style="text-align: center; color: red; margin: 20px;">
-            <p>${error}</p>
-        </div>
-    </c:if>
-
-    <c:if test="${not empty phim}">
-        <c:set var="maPhim" value="${phim.maPhim}" />
-        <div class="movie-detail-container">
-            <div class="movie-header">
-                <div class="movie-poster">
-                    <img src="${pageContext.request.contextPath}/resources/user/images/${phim.urlPoster}" alt="${phim.tenPhim}" id="movie-poster" />
-                </div>
-                <div class="movie-info">
-                    <h1 id="movie-title">${phim.tenPhim}</h1>
-                    <div class="movie-meta">
-                        <span class="rating" id="movie-rating">N/A</span>
-                        <span class="age-restriction" id="movie-age">${phim.doTuoi}</span>
-                        <span class="duration" id="movie-duration">${phim.thoiLuong} phút</span>
-                    </div>
-                    <p class="synopsis" id="movie-synopsis">
-                        <c:choose>
-                            <c:when test="${not empty phim.moTa}">${phim.moTa}</c:when>
-                            <c:otherwise>Không có mô tả</c:otherwise>
-                        </c:choose>
-                    </p>
-                    <div class="movie-details">
-                        <p><strong>Nhà sản xuất:</strong> <span id="movie-nhaSx">${phim.nhaSanXuat}</span></p>
-                        <p><strong>Quốc gia:</strong> <span id="movie-quocGia">${phim.quocGia}</span></p>
-                        <p><strong>Đạo diễn:</strong> <span id="movie-director">${phim.daoDien}</span></p>
-                        <p><strong>Diễn viên:</strong> 
-                            <span id="movie-cast">
-                                <c:forEach var="maDienVien" items="${phim.maDienViens}" varStatus="loop">
-                                    ${maDienVien}<c:if test="${!loop.last}">,</c:if>
-                                </c:forEach>
-                            </span>
-                        </p>
-                        <p><strong>Thể loại:</strong> 
-                            <span id="movie-genre">
-                                <c:forEach var="maTheLoai" items="${phim.maTheLoais}" varStatus="loop">
-                                    ${maTheLoai}<c:if test="${!loop.last}">,</c:if>
-                                </c:forEach>
-                            </span>
-                        </p>
-                        <p><strong>Định dạng:</strong> <span id="movie-dinhDang">${phim.dinhDang}</span></p>
-                        <p><strong>Khởi chiếu:</strong> <span id="movie-release"><fmt:formatDate value="${phim.ngayKhoiChieu}" pattern="dd/MM/yyyy" /></span></p>
-                    </div>
-                </div>
+        <div class="progress-container">
+            <div class="progress-step active" onclick="goToStep(1)">
+                <div class="circle">1</div>
+                <span>Chọn phim</span>
             </div>
+            <div class="progress-step" onclick="goToStep(2)">
+                <div class="circle">2</div>
+                <span>Chọn ghế</span>
+            </div>
+            <div class="progress-step" onclick="goToStep(3)">
+                <div class="circle">3</div>
+                <span>Chọn đồ ăn</span>
+            </div>
+            <div class="progress-step" onclick="goToStep(4)">
+                <div class="circle">4</div>
+                <span>Thanh toán</span>
+            </div>
+        </div>
 
-            <div class="showtime-section">
-                <h2>Lịch Chiếu</h2>
-                <div class="date-selector">
-                    <button class="date-nav prev">◀</button>
-                    <div class="dates" id="dateContainer"></div>
-                    <button class="date-nav next">▶</button>
-                </div>
-                <div class="theater-list">
-                    <c:if test="${empty lichChieuMap}">
-                        <p>Không có lịch chiếu</p>
-                    </c:if>
-                    <c:forEach var="entry" items="${lichChieuMap}">
-                        <c:set var="rap" value="${entry.key}" />
-                        <div class="theater" data-rap="${rap.maRapChieu}">
-                            <div class="theater-name">${rap.tenRapChieu} - ${rap.diaChi}</div>
-                            <div class="showtimes">
-                                <c:forEach var="suatChieu" items="${entry.value}">
-                                    <div class="time-slot-wrapper" data-date="<fmt:formatDate value='${suatChieu.ngayGioChieu}' pattern='dd/MM/yyyy' />">
-                                        <form action="${pageContext.request.contextPath}/booking/select-seats" method="post" style="display: inline;">
-                                            <input type="hidden" name="maPhim" value="${maPhim}">
-                                            <input type="hidden" name="maSuatChieu" value="${suatChieu.maSuatChieu}">
-                                            <button type="submit" class="time-slot">
-                                                <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="HH:mm" />
-                                                <br><small>(${suatChieu.loaiManChieu})</small>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </c:forEach>
-                            </div>
+        <c:if test="${not empty error}">
+            <div class="error-message" style="text-align: center; color: red; margin: 20px;">
+                <p>${error}</p>
+            </div>
+        </c:if>
+
+        <c:if test="${not empty phim}">
+            <c:set var="maPhim" value="${phim.maPhim}" />
+            <div class="movie-detail-container">
+                <div class="movie-header">
+                    <div class="movie-poster">
+                        <img src="${pageContext.request.contextPath}/resources/user/images/${phim.urlPoster}" alt="${phim.tenPhim}" id="movie-poster" />
+                    </div>
+                    <div class="movie-info">
+                        <h1 id="movie-title">${phim.tenPhim}</h1>
+                        <div class="movie-meta">
+                            <span class="rating" id="movie-rating">N/A</span>
+                            <span class="age-restriction" id="movie-age">${phim.doTuoi}</span>
+                            <span class="duration" id="movie-duration">${phim.thoiLuong} phút</span>
                         </div>
-                    </c:forEach>
+                        <p class="synopsis" id="movie-synopsis">
+                            <c:choose>
+                                <c:when test="${not empty phim.moTa}">${phim.moTa}</c:when>
+                                <c:otherwise>Không có mô tả</c:otherwise>
+                            </c:choose>
+                        </p>
+                        <div class="movie-details">
+                            <p><strong>Nhà sản xuất:</strong> <span id="movie-nhaSx">${phim.nhaSanXuat}</span></p>
+                            <p><strong>Quốc gia:</strong> <span id="movie-quocGia">${phim.quocGia}</span></p>
+                            <p><strong>Đạo diễn:</strong> <span id="movie-director">${phim.daoDien}</span></p>
+                            <p><strong>Diễn viên:</strong> 
+                                <span id="movie-cast">
+                                    <c:forEach var="maDienVien" items="${phim.maDienViens}" varStatus="loop">
+                                        ${maDienVien}<c:if test="${!loop.last}">,</c:if>
+                                    </c:forEach>
+                                </span>
+                            </p>
+                            <p><strong>Thể loại:</strong> 
+                                <span id="movie-genre">
+                                    <c:forEach var="maTheLoai" items="${phim.maTheLoais}" varStatus="loop">
+                                        ${maTheLoai}<c:if test="${!loop.last}">,</c:if>
+                                    </c:forEach>
+                                </span>
+                            </p>
+                            <p><strong>Định dạng:</strong> <span id="movie-dinhDang">${phim.dinhDang}</span></p>
+                            <p><strong>Khởi chiếu:</strong> <span id="movie-release"><fmt:formatDate value="${phim.ngayKhoiChieu}" pattern="dd/MM/yyyy" /></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="showtime-section">
+                    <h2>Lịch Chiếu</h2>
+                    <div class="date-selector">
+                        <button class="date-nav prev">◀</button>
+                        <div class="dates" id="dateContainer"></div>
+                        <button class="date-nav next">▶</button>
+                    </div>
+                    <div class="theater-list">
+                        <c:if test="${empty lichChieuMap}">
+                            <p>Không có lịch chiếu</p>
+                        </c:if>
+                        <c:forEach var="entry" items="${lichChieuMap}">
+                            <c:set var="rap" value="${entry.key}" />
+                            <div class="theater" data-rap="${rap.maRapChieu}">
+                                <div class="theater-name">${rap.tenRapChieu} - ${rap.diaChi}</div>
+                                <div class="showtimes">
+                                    <c:forEach var="suatChieu" items="${entry.value}">
+                                        <div class="time-slot-wrapper" data-date="<fmt:formatDate value='${suatChieu.ngayGioChieu}' pattern='dd/MM/yyyy' />">
+                                            <form action="${pageContext.request.contextPath}/booking/select-seats" method="post" style="display: inline;">
+                                                <input type="hidden" name="maPhim" value="${maPhim}">
+                                                <input type="hidden" name="maSuatChieu" value="${suatChieu.maSuatChieu}">
+                                                <button type="submit" class="time-slot">
+                                                    <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="HH:mm" />
+                                                    <br><small>(${suatChieu.loaiManChieu})</small>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </div>
+                        </c:forEach>
+                    </div>
                 </div>
             </div>
-        </div>
-    </c:if>
+        </c:if>
+    </div>
 
     <footer class="footer">
         <div class="footer-content">
@@ -180,25 +191,6 @@
     </footer>
 
     <script>
-        let timeLeft = 10 * 60; // 10 phút tính bằng giây
-        let timerId;
-
-        function startTimer() {
-            timerId = setInterval(() => {
-                if (timeLeft <= 0) {
-                    clearInterval(timerId);
-                    alert("Hết thời gian đặt vé! Vui lòng bắt đầu lại.");
-                    window.location.href = "${pageContext.request.contextPath}/home/";
-                    return;
-                }
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                document.getElementById("timer").textContent = 
-                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-                timeLeft--;
-            }, 1000);
-        }
-
         function goToStep(step) {
             if (step !== 1) {
                 alert("Vui lòng chọn suất chiếu trước khi chuyển sang bước tiếp theo!");
@@ -253,12 +245,6 @@
                 const firstDate = sortedDates[0];
                 filterShowtimes(firstDate);
             }
-
-            startTimer();
-        });
-
-        window.addEventListener("beforeunload", () => {
-            sessionStorage.setItem("timeLeft", timeLeft);
         });
     </script>
 </body>

@@ -65,9 +65,9 @@
 }
 
 .seat {
-    width: 30px;
-    height: 30px;
-    margin: 3px;
+    width: 40px; /* Đồng bộ kích thước với styles.css */
+    height: 40px;
+    margin: 5px;
     border-radius: 5px;
     display: flex;
     align-items: center;
@@ -75,29 +75,49 @@
     cursor: pointer;
     font-size: 12px;
     transition: all 0.3s ease;
-    background-color: #fff; /* Ghế trống - trắng */
-    border: 1px solid #ccc;
+    position: relative;
+    color: #000; /* Màu chữ để rõ trên nền trắng */
+    border: 1px solid #ccc; /* Viền cho ghế trắng */
 }
 
-.seat.double {
-    width: 60px;
-    background-color: #e6f3ff; /* Ghế đôi */
+.seat.available {
+    background-color: #ffffff; /* Màu trắng cho ghế chưa chọn */
 }
 
 .seat.available:hover {
-    background-color: #e3f2fd;
+    background-color: #f0f0f0; /* Hiệu ứng hover nhẹ, tránh xanh dương */
+}
+
+.seat.reserved {
+    background-color: orange; /* Màu cam cho ghế đang giữ */
 }
 
 .seat.selected {
-    background-color: #1a73e8; /* Ghế đang chọn - xanh dương */
+    background-color: #ff4500; /* Màu cam cho ghế đang chọn */
     color: white;
-    border-color: #1976d2;
+    border-color: #ff4500;
 }
 
 .seat.occupied {
-    background-color: #ffd700; /* Ghế đã đặt - vàng */
+    background-color: #ffd700; /* Màu vàng cho ghế đã đặt */
     cursor: not-allowed;
     border-color: #bdbdbd;
+}
+
+.seat.double {
+    width: 80px; /* Ghế đôi rộng gấp đôi */
+    background-color: #e6f3ff; /* Giữ màu ghế đôi */
+}
+
+.seat .timer {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 10px;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 2px 4px;
+    border-radius: 3px;
 }
 
 .seat-legend {
@@ -121,11 +141,16 @@
 }
 
 .seat-example.available {
-    background-color: #fff;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+}
+
+.seat-example.reserved {
+    background-color: orange;
 }
 
 .seat-example.selected {
-    background-color: #1a73e8;
+    background-color: #ff4500;
 }
 
 .seat-example.occupied {

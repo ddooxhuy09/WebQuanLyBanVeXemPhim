@@ -8,6 +8,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/user/css/styles.css?v=1.0">
     <title>Booking Seat - Galaxy Cinema</title>
+    <style>
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #555;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .back-btn:hover {
+            background-color: #777;
+        }
+        .timer-container {
+            display: block;
+            font-size: 16px;
+        }
+        #countdown-timer {
+            display: inline;
+            color: red; /* Tạm thời để kiểm tra hiển thị */
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -29,113 +51,122 @@
         </ul>
     </nav>
 
-    <!-- Thanh tiến trình -->
-    <div class="progress-container">
-        <div class="progress-step completed" onclick="goToStep(1)">
-            <div class="circle">1</div>
-            <span>Chọn phim</span>
-        </div>
-        <div class="progress-step active" onclick="goToStep(2)">
-            <div class="circle">2</div>
-            <span>Chọn ghế</span>
-        </div>
-        <div class="progress-step" onclick="goToStep(3)">
-            <div class="circle">3</div>
-            <span>Chọn đồ ăn</span>
-        </div>
-        <div class="progress-step" onclick="goToStep(4)">
-            <div class="circle">4</div>
-            <span>Thanh toán</span>
-        </div>
-    </div>
+    <div class="container">
+        <a href="${pageContext.request.contextPath}/movie-detail?id=${phim.maPhim}" class="back-btn">Quay lại</a>
 
-    <!-- Bộ đếm giờ -->
-    <div class="booking-container">
-        <c:if test="${not empty error}">
-            <div class="error-message">${error}</div>
+        <div class="progress-container">
+            <div class="progress-step completed" onclick="goToStep(1)">
+                <div class="circle">1</div>
+                <span>Chọn phim</span>
+            </div>
+            <div class="progress-step active" onclick="goToStep(2)">
+                <div class="circle">2</div>
+                <span>Chọn ghế</span>
+            </div>
+            <div class="progress-step" onclick="goToStep(3)">
+                <div class="circle">3</div>
+                <span>Chọn đồ ăn</span>
+            </div>
+            <div class="progress-step" onclick="goToStep(4)">
+                <div class="circle">4</div>
+                <span>Thanh toán</span>
+            </div>
+        </div>
+
+        <c:if test="${not empty sessionScope.selectedSeats}">
+            <div class="timer-container">
+                <span>Thời gian giữ ghế: </span>
+                <span id="countdown-timer"></span>
+            </div>
         </c:if>
-        <c:if test="${not empty success}">
-            <div class="success-message">${success}</div>
-        </c:if>
 
-        <div class="movie-info-summary">
-            <h2>${phim.tenPhim}</h2>
-            <div class="booking-details">
-                <p><strong>Rạp:</strong> ${rapChieu.tenRapChieu}</p>
-                <p><strong>Suất chiếu:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="HH:mm" /></p>
-                <p><strong>Ngày:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="dd/MM/yyyy" /></p>
-            </div>
-        </div>
+        <div class="booking-container">
+            <c:if test="${not empty error}">
+                <div class="error-message">${error}</div>
+            </c:if>
+            <c:if test="${not empty success}">
+                <div class="success-message">${success}</div>
+            </c:if>
 
-        <div class="screen-container">
-            <div class="screen">SCREEN</div>
-        </div>
-
-        <div class="seating-map">
-            <c:forEach var="row" items="${rowLabels}">
-                <div class="seat-row">
-                    <span class="row-label">${row}</span>
-                    <c:forEach var="ghe" items="${gheList}">
-                        <c:if test="${ghe.tenHang eq row}">
-                            <c:set var="seatId" value="${ghe.tenHang}${ghe.soGhe}" />
-                            <c:set var="isDouble" value="${ghe.loaiGhe.tenLoaiGhe eq 'Đôi'}" />
-                            <c:set var="isPaid" value="${paidSeats.contains(seatId)}" />
-                            <c:set var="isReserved" value="${reservedSeats.contains(seatId)}" />
-                            <div id="seat-${seatId}" 
-                                 class="seat ${isDouble ? 'double' : ''} ${isPaid ? 'occupied' : isReserved ? 'reserved' : 'available'}"
-                                 data-seat-id="${seatId}" 
-                                 data-is-paid="${isPaid}"
-                                 data-is-reserved="${isReserved}"
-                                 data-he-so-gia="${ghe.loaiGhe.heSoGia}"
-                                 data-reserve-time="${seatReservationTimes[seatId] != null ? seatReservationTimes[seatId] : ''}">
-                                ${seatId}
-                                <c:if test="${isReserved}">
-                                    <span class="timer" id="timer-${seatId}"></span>
-                                </c:if>
-                            </div>
-                        </c:if>
-                    </c:forEach>
+            <div class="movie-info-summary">
+                <h2>${phim.tenPhim}</h2>
+                <div class="booking-details">
+                    <p><strong>Rạp:</strong> ${rapChieu.tenRapChieu}</p>
+                    <p><strong>Suất chiếu:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="HH:mm" /></p>
+                    <p><strong>Ngày:</strong> <fmt:formatDate value="${suatChieu.ngayGioChieu}" pattern="dd/MM/yyyy" /></p>
                 </div>
-            </c:forEach>
-        </div>
+            </div>
 
-        <div class="seat-legend">
-            <div class="legend-item">
-                <div class="seat-example available"></div>
-                <span>Ghế trống</span>
+            <div class="screen-container">
+                <div class="screen">SCREEN</div>
             </div>
-            <div class="legend-item">
-                <div class="seat-example selected"></div>
-                <span>Ghế đang chọn</span>
-            </div>
-            <div class="legend-item">
-                <div class="seat-example occupied"></div>
-                <span>Ghế đã đặt</span>
-            </div>
-            <div class="legend-item">
-                <div class="seat-example reserved"></div>
-                <span>Ghế đang giữ</span>
-            </div>
-            <div class="legend-item">
-                <div class="seat-example double"></div>
-                <span>Ghế đôi</span>
-            </div>
-        </div>
 
-        <div class="booking-summary">
-            <h3>Thông tin đặt vé</h3>
-            <form action="${pageContext.request.contextPath}/booking/confirm-booking" method="post" id="bookingForm">
-                <input type="hidden" name="maPhim" value="${phim.maPhim}">
-                <input type="hidden" name="maSuatChieu" value="${suatChieu.maSuatChieu}">
-                <div class="selected-seats">
-                    <p>Ghế đã chọn: <span id="selected-seats-display"></span></p>
-                    <input type="hidden" name="selectedSeats" id="selected-seats-input">
+            <div class="seating-map">
+                <c:forEach var="row" items="${rowLabels}">
+                    <div class="seat-row">
+                        <span class="row-label">${row}</span>
+                        <c:forEach var="ghe" items="${gheList}">
+                            <c:if test="${ghe.tenHang eq row}">
+                                <c:set var="seatId" value="${ghe.tenHang}${ghe.soGhe}" />
+                                <c:set var="isDouble" value="${ghe.loaiGhe.tenLoaiGhe eq 'Đôi'}" />
+                                <c:set var="isPaid" value="${paidSeats.contains(seatId)}" />
+                                <c:set var="isReserved" value="${reservedSeats.contains(seatId)}" />
+                                <div id="seat-${seatId}" 
+                                     class="seat ${isDouble ? 'double' : ''} ${isPaid ? 'occupied' : isReserved ? 'reserved' : 'available'}"
+                                     data-seat-id="${seatId}" 
+                                     data-is-paid="${isPaid}"
+                                     data-is-reserved="${isReserved}"
+                                     data-he-so-gia="${ghe.loaiGhe.heSoGia}"
+                                     data-reserve-time="${seatReservationTimes[seatId] != null ? seatReservationTimes[seatId] : ''}">
+                                    ${seatId}
+                                    <c:if test="${isReserved}">
+                                        <span class="timer" id="timer-${seatId}"></span>
+                                    </c:if>
+                                </div>
+                            </c:if>
+                        </c:forEach>
+                    </div>
+                </c:forEach>
+            </div>
+
+            <div class="seat-legend">
+                <div class="legend-item">
+                    <div class="seat-example available"></div>
+                    <span>Ghế trống</span>
                 </div>
-                <div class="price-summary">
-                    <p>Tổng tiền: <span id="total-price">0đ</span></p>
+                <div class="legend-item">
+                    <div class="seat-example selected"></div>
+                    <span>Ghế đang chọn</span>
                 </div>
-                <button type="submit" class="confirm-btn" id="confirm-btn">Xác nhận đặt vé</button>
-            </form>
+                <div class="legend-item">
+                    <div class="seat-example occupied"></div>
+                    <span>Ghế đã đặt</span>
+                </div>
+                <div class="legend-item">
+                    <div class="seat-example reserved"></div>
+                    <span>Ghế đang giữ</span>
+                </div>
+                <div class="legend-item">
+                    <div class="seat-example double"></div>
+                    <span>Ghế đôi</span>
+                </div>
+            </div>
+
+            <div class="booking-summary">
+                <h3>Thông tin đặt vé</h3>
+                <form action="${pageContext.request.contextPath}/booking/reserve-seats" method="post" id="bookingForm">
+                    <input type="hidden" name="maPhim" value="${phim.maPhim}">
+                    <input type="hidden" name="maSuatChieu" value="${suatChieu.maSuatChieu}">
+                    <div class="selected-seats">
+                        <p>Ghế đã chọn: <span id="selected-seats-display"></span></p>
+                        <input type="hidden" name="selectedSeats" id="selected-seats-input">
+                    </div>
+                    <div class="price-summary">
+                        <p>Tổng tiền: <span id="total-price">0đ</span></p>
+                    </div>
+                    <button type="submit" class="confirm-btn" id="confirm-btn">Xác nhận đặt vé</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -184,30 +215,63 @@
         const baseTicketPrice = ${phim.giaVe != null ? phim.giaVe : 90000};
         const RESERVATION_TIMEOUT = 5 * 60 * 1000;
         let timers = {};
-        let timeLeft = sessionStorage.getItem("timeLeft") || (10 * 60);
-        let timerId;
+
+        // Khởi tạo selectedSeats từ model
+        <c:if test="${not empty selectedSeats}">
+            selectedSeats = [
+                <c:forEach var="seatId" items="${selectedSeats}" varStatus="status">
+                    "${seatId}"${status.last ? '' : ','}
+                </c:forEach>
+            ];
+        </c:if>
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("selectedSeats:", selectedSeats);
             initializeSeats();
             connectWebSocket();
             startTimers();
-            startBookingTimer();
+            startCountdownTimer();
+            updateSummary();
         });
 
-        function startBookingTimer() {
-            timerId = setInterval(() => {
+        function startCountdownTimer() {
+            const timerDisplay = document.getElementById('countdown-timer');
+            if (!timerDisplay) {
+                console.log("Timer display element not found. Check if sessionScope.selectedSeats is empty.");
+                return;
+            }
+
+            console.log("Starting countdown timer...");
+            let timeLeft = parseInt(sessionStorage.getItem('countdownTime'));
+            if (!timeLeft) {
+                timeLeft = 300; // 5 phút
+                sessionStorage.setItem('countdownTime', timeLeft);
+            }
+            console.log("Initial timeLeft:", timeLeft);
+
+            function updateTimer() {
                 if (timeLeft <= 0) {
-                    clearInterval(timerId);
-                    alert("Hết thời gian đặt vé! Vui lòng bắt đầu lại.");
-                    window.location.href = "${pageContext.request.contextPath}/home/";
+                    clearInterval(timerInterval);
+                    alert("Hết thời gian giữ ghế! Vui lòng chọn lại ghế.");
+                    sessionStorage.removeItem('countdownTime');
+                    window.location.href = "${pageContext.request.contextPath}/booking/select-seats?maPhim=${phim.maPhim}&maSuatChieu=${suatChieu.maSuatChieu}";
                     return;
                 }
+
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
-                document.getElementById("timer").textContent = 
-                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timerDisplay.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                console.log("Time left:", timeLeft, "Display:", timerDisplay.textContent);
                 timeLeft--;
-            }, 1000);
+                sessionStorage.setItem('countdownTime', timeLeft);
+            }
+
+            updateTimer();
+            const timerInterval = setInterval(updateTimer, 1000);
+
+            document.getElementById('bookingForm').addEventListener('submit', function() {
+                clearInterval(timerInterval);
+            });
         }
 
         function goToStep(step) {
@@ -230,11 +294,14 @@
                 seat.classList.remove('selected', 'available', 'reserved', 'occupied');
                 if (isPaid) {
                     seat.classList.add('occupied');
-                    console.log('Seat ' + seatId + ' marked as occupied');
-                } else if (isReserved) {
+                } else if (isReserved && !selectedSeats.includes(seatId)) {
                     seat.classList.add('reserved');
                 } else {
                     seat.classList.add('available');
+                    if (selectedSeats.includes(seatId)) {
+                        seat.classList.remove('available');
+                        seat.classList.add('selected');
+                    }
                 }
                 seat.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -245,15 +312,25 @@
         }
 
         function toggleSeatSelection(seatElement, seatId) {
-            if (seatElement.classList.contains('occupied') || seatElement.classList.contains('reserved')) {
-                console.log('Cannot select seat ' + seatId + ': occupied or reserved');
+            const isPaid = seatElement.getAttribute('data-is-paid') === 'true';
+            if (isPaid) {
+                console.log('Cannot select seat ' + seatId + ': occupied');
                 return;
             }
-            if (selectedSeats.includes(seatId)) {
+            if (seatElement.classList.contains('selected')) {
                 selectedSeats = selectedSeats.filter(id => id !== seatId);
                 seatElement.classList.remove('selected');
-            } else {
+                seatElement.classList.add('available');
+                seatElement.classList.remove('reserved');
+                seatElement.removeAttribute('data-is-reserved');
+                seatElement.querySelector('.timer')?.remove();
+            } else if (seatElement.classList.contains('available')) {
+                if (seatElement.classList.contains('reserved') && !selectedSeats.includes(seatId)) {
+                    console.log('Cannot select seat ' + seatId + ': reserved by others');
+                    return;
+                }
                 selectedSeats.push(seatId);
+                seatElement.classList.remove('available');
                 seatElement.classList.add('selected');
             }
             updateSummary();
@@ -265,8 +342,10 @@
             let totalPrice = 0;
             selectedSeats.forEach(seatId => {
                 const seatElement = document.getElementById('seat-' + seatId);
-                const heSoGia = parseFloat(seatElement.getAttribute('data-he-so-gia') || '1');
-                totalPrice += baseTicketPrice * heSoGia;
+                if (seatElement) {
+                    const heSoGia = parseFloat(seatElement.getAttribute('data-he-so-gia') || '1');
+                    totalPrice += baseTicketPrice * heSoGia;
+                }
             });
             document.getElementById('total-price').textContent = totalPrice.toLocaleString('vi-VN') + 'đ';
             document.getElementById('confirm-btn').disabled = selectedSeats.length === 0;
@@ -276,7 +355,7 @@
             document.querySelectorAll('.seat.reserved').forEach(seat => {
                 const seatId = seat.getAttribute('data-seat-id');
                 const reserveTime = parseInt(seat.getAttribute('data-reserve-time') || '0');
-                if (reserveTime) {
+                if (reserveTime && !selectedSeats.includes(seatId)) {
                     updateTimer(seatId, reserveTime);
                 }
             });
@@ -287,7 +366,9 @@
                 clearInterval(timers[seatId]);
             }
             const timerElement = document.getElementById('timer-' + seatId);
-            if (!timerElement) return;
+            if (!timerElement) {
+                return;
+            }
 
             timers[seatId] = setInterval(() => {
                 const now = new Date().getTime();
@@ -297,10 +378,12 @@
                     clearInterval(timers[seatId]);
                     delete timers[seatId];
                     const seatElement = document.getElementById('seat-' + seatId);
-                    seatElement.classList.remove('reserved');
-                    seatElement.classList.add('available');
-                    seatElement.removeAttribute('data-is-reserved');
-                    seatElement.querySelector('.timer')?.remove();
+                    if (!seatElement.classList.contains('selected')) {
+                        seatElement.classList.remove('reserved');
+                        seatElement.classList.add('available');
+                        seatElement.removeAttribute('data-is-reserved');
+                        seatElement.querySelector('.timer')?.remove();
+                    }
                 } else {
                     const minutes = Math.floor(remaining / 60000);
                     const seconds = Math.floor((remaining % 60000) / 1000);
@@ -344,7 +427,20 @@
                             seat.setAttribute('data-is-paid', 'true');
                             seat.setAttribute('data-is-reserved', 'false');
                             seat.querySelector('.timer')?.remove();
-                            console.log('WebSocket: Seat ' + seatId + ' marked as paid');
+                            selectedSeats = selectedSeats.filter(id => id !== seatId);
+                            updateSummary();
+                        }
+                    });
+                });
+                stompClient.subscribe('/topic/expired-seats/${suatChieu.maSuatChieu}', function(message) {
+                    const expiredSeats = JSON.parse(message.body);
+                    document.querySelectorAll('.seat').forEach(seat => {
+                        const seatId = seat.getAttribute('data-seat-id');
+                        if (expiredSeats.includes(seatId) && !seat.classList.contains('selected')) {
+                            seat.classList.remove('reserved');
+                            seat.classList.add('available');
+                            seat.setAttribute('data-is-reserved', 'false');
+                            seat.querySelector('.timer')?.remove();
                         }
                     });
                 });
@@ -358,10 +454,6 @@
                 event.preventDefault();
                 alert('Vui lòng chọn ít nhất một ghế!');
             }
-        });
-
-        window.addEventListener("beforeunload", () => {
-            sessionStorage.setItem("timeLeft", timeLeft);
         });
     </script>
 </body>

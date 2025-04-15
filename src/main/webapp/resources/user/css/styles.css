@@ -108,6 +108,53 @@ body {
     color: #d32f2f;
 }
 
+/* Style cho ghế và bộ đếm thời gian ghế */
+.seat {
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    display: inline-block;
+    text-align: center;
+    line-height: 40px;
+    border-radius: 5px;
+    cursor: pointer;
+    position: relative;
+    color: #000; /* Màu chữ để đảm bảo hiển thị rõ trên nền trắng */
+}
+
+.seat.available {
+    background-color: #ffffff; /* Màu trắng cho ghế chưa chọn */
+    border: 1px solid #ccc; /* Thêm viền để ghế trắng không bị lẫn vào nền */
+}
+
+.seat.reserved {
+    background-color: orange; /* Giữ nguyên màu cam cho ghế đang giữ */
+}
+
+.seat.occupied {
+    background-color: #ffd700; /* Màu vàng cho ghế đã thanh toán */
+    cursor: not-allowed;
+}
+
+.seat.selected {
+    background-color: #ff4500; /* Màu cam cho ghế đang chọn */
+}
+
+.seat.double {
+    width: 80px;
+}
+
+.seat .timer {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 10px;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
 /* CSS cho select-food.jsp */
 .container {
     max-width: 1200px;

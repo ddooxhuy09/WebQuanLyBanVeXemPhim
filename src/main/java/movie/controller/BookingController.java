@@ -13,9 +13,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
-
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
@@ -36,11 +33,6 @@ public class BookingController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
-    @PostConstruct
-    public void init() {
-        seatReservationService.startExpirationCheck();
-    }
 
     @Transactional
     @RequestMapping(value = "/select-seats", method = {RequestMethod.GET, RequestMethod.POST})
@@ -96,11 +88,13 @@ public class BookingController {
             gheQuery.setParameter("maPhongChieu", phongChieu.getMaPhongChieu());
             List<GheEntity> gheList = gheQuery.list();
 
+            // Lấy tất cả vé cho suất chiếu
             Query veQuery = dbSession.createQuery(
                     "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu");
             veQuery.setParameter("maSuatChieu", maSuatChieu);
             List<VeEntity> veList = veQuery.list();
 
+            Date fiveMinutesAgo = new Date(System.currentTimeMillis() - 5 * 60 * 1000);
             Set<String> reservedSeats = new HashSet<>();
             Set<String> paidSeats = new HashSet<>();
             Map<String, Long> seatReservationTimes = new HashMap<>();
@@ -108,22 +102,24 @@ public class BookingController {
                 for (GheEntity ghe : gheList) {
                     if (ghe.getMaGhe().equals(ve.getMaGhe())) {
                         String seatId = ghe.getTenHang() + ghe.getSoGhe();
-                        if (ve.getDonHang() == null) {
+                        if (ve.getDonHang() == null && ve.getNgayMua().after(fiveMinutesAgo)) {
                             reservedSeats.add(seatId);
-                            if (ve.getNgayMua() != null) {
-                                seatReservationTimes.put(seatId, ve.getNgayMua().getTime());
-                            }
-                        } else {
+                            seatReservationTimes.put(seatId, ve.getNgayMua().getTime());
+                        } else if (ve.getDonHang() != null) {
                             paidSeats.add(seatId);
-                            System.out.println("Paid seat: " + seatId + ", MaDonHang: " + ve.getDonHang().getMaDonHang());
                         }
                         break;
                     }
                 }
             }
 
-            System.out.println("Paid seats: " + paidSeats);
-            System.out.println("Reserved seats: " + reservedSeats);
+            // Lấy danh sách ghế đã chọn từ session
+            String selectedSeats = (String) session.getAttribute("selectedSeats");
+            if (selectedSeats != null && !selectedSeats.isEmpty()) {
+                model.addAttribute("selectedSeats", Arrays.asList(selectedSeats.split(",")));
+            } else {
+                model.addAttribute("selectedSeats", new ArrayList<String>());
+            }
 
             Set<String> uniqueRows = new TreeSet<>();
             int maxCot = 0;
@@ -203,6 +199,13 @@ public class BookingController {
             gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
             List<GheEntity> gheList = gheQuery.list();
 
+            // Xóa các vé cũ của người dùng cho suất chiếu này (MaDonHang = null)
+            Query deleteOldVeQuery = dbSession.createQuery(
+                    "DELETE FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu AND v.maKhachHang = :maKhachHang AND v.donHang IS NULL");
+            deleteOldVeQuery.setParameter("maSuatChieu", maSuatChieu);
+            deleteOldVeQuery.setParameter("maKhachHang", loggedInUser.getMaKhachHang());
+            deleteOldVeQuery.executeUpdate();
+
             Date fiveMinutesAgo = new Date(System.currentTimeMillis() - 5 * 60 * 1000);
             for (String seatId : selectedSeatList) {
                 GheEntity selectedGhe = null;
@@ -228,15 +231,24 @@ public class BookingController {
                             return showSeatSelection(maPhim, maSuatChieu, session, model);
                         }
                     }
+                    // Tạo vé mới
+                    VeEntity ve = new VeEntity();
+                    ve.setMaVe("VE" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8));
+                    ve.setMaKhachHang(loggedInUser.getMaKhachHang());
+                    ve.setMaSuatChieu(maSuatChieu);
+                    ve.setMaGhe(selectedGhe.getMaGhe());
+                    ve.setGiaVe(phimEntity.getGiaVe().multiply(BigDecimal.valueOf(selectedGhe.getLoaiGhe().getHeSoGia())));
+                    ve.setNgayMua(new Date());
+                    ve.setDonHang(null);
+                    dbSession.save(ve);
                 }
             }
-
-            seatReservationService.updateSeatReservation(maSuatChieu, selectedSeatList, loggedInUser.getMaKhachHang(),
-                    phimEntity.getGiaVe());
 
             session.setAttribute("selectedSeats", selectedSeats);
             session.setAttribute("maPhim", maPhim);
             session.setAttribute("maSuatChieu", maSuatChieu);
+            session.setAttribute("reservationStartTime", System.currentTimeMillis());
+            session.setMaxInactiveInterval(5 * 60);
 
             messagingTemplate.convertAndSend("/topic/seats/" + maSuatChieu, selectedSeatList);
             return "redirect:/booking/select-food";
@@ -251,9 +263,10 @@ public class BookingController {
     @RequestMapping(value = "/update-seats", method = RequestMethod.POST)
     public String updateSeats(@RequestParam("maPhim") String maPhim,
                              @RequestParam("maSuatChieu") String maSuatChieu,
-                             @RequestParam("selectedSeats") String selectedSeats,
+                             @RequestParam(value = "selectedSeats", required = false) String selectedSeats,
                              HttpSession session,
-                             Model model) {
+                             Model model,
+                             @RequestParam(value = "fromSelectFood", required = false) String fromSelectFood) {
         try {
             KhachHangModel loggedInUser = (KhachHangModel) session.getAttribute("loggedInUser");
             if (loggedInUser == null) {
@@ -263,71 +276,23 @@ public class BookingController {
                 return "redirect:/auth/login";
             }
 
+            // Nếu yêu cầu từ select-food.jsp, trả về trang chọn ghế mà không cập nhật
+            if ("true".equals(fromSelectFood)) {
+                // Đảm bảo selectedSeats từ session được truyền vào model
+                String sessionSeats = (String) session.getAttribute("selectedSeats");
+                if (sessionSeats != null && !sessionSeats.isEmpty()) {
+                    model.addAttribute("selectedSeats", Arrays.asList(sessionSeats.split(",")));
+                }
+                return showSeatSelection(maPhim, maSuatChieu, session, model);
+            }
+
             if (selectedSeats == null || selectedSeats.isEmpty()) {
                 model.addAttribute("error", "Vui lòng chọn ít nhất một ghế");
                 return showSeatSelection(maPhim, maSuatChieu, session, model);
             }
 
-            Session dbSession = sessionFactory.getCurrentSession();
-            Query phimQuery = dbSession.createQuery("FROM PhimEntity p WHERE p.maPhim = :maPhim");
-            phimQuery.setParameter("maPhim", maPhim);
-            PhimEntity phimEntity = (PhimEntity) phimQuery.uniqueResult();
-            if (phimEntity == null) {
-                model.addAttribute("error", "Phim không tồn tại");
-                return "user/book-ticket";
-            }
-
-            Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity sc WHERE sc.maSuatChieu = :maSuatChieu");
-            suatChieuQuery.setParameter("maSuatChieu", maSuatChieu);
-            SuatChieuEntity suatChieuEntity = (SuatChieuEntity) suatChieuQuery.uniqueResult();
-            if (suatChieuEntity == null) {
-                model.addAttribute("error", "Suất chiếu không tồn tại");
-                return "user/book-ticket";
-            }
-
-            List<String> selectedSeatList = Arrays.asList(selectedSeats.split(","));
-            Query gheQuery = dbSession.createQuery(
-                    "FROM GheEntity g WHERE g.phongChieu.maPhongChieu = :maPhongChieu");
-            gheQuery.setParameter("maPhongChieu", suatChieuEntity.getPhongChieu().getMaPhongChieu());
-            List<GheEntity> gheList = gheQuery.list();
-
-            Date fiveMinutesAgo = new Date(System.currentTimeMillis() - 5 * 60 * 1000);
-            for (String seatId : selectedSeatList) {
-                GheEntity selectedGhe = null;
-                for (GheEntity ghe : gheList) {
-                    if ((ghe.getTenHang() + ghe.getSoGhe()).equals(seatId.trim())) {
-                        selectedGhe = ghe;
-                        break;
-                    }
-                }
-                if (selectedGhe != null) {
-                    Query veQuery = dbSession.createQuery(
-                            "FROM VeEntity v WHERE v.maSuatChieu = :maSuatChieu AND v.maGhe = :maGhe");
-                    veQuery.setParameter("maSuatChieu", maSuatChieu);
-                    veQuery.setParameter("maGhe", selectedGhe.getMaGhe());
-                    VeEntity existingVe = (VeEntity) veQuery.uniqueResult();
-                    if (existingVe != null) {
-                        if (existingVe.getDonHang() != null) {
-                            model.addAttribute("error", "Ghế " + seatId + " đã được thanh toán");
-                            return showSeatSelection(maPhim, maSuatChieu, session, model);
-                        } else if (!existingVe.getMaKhachHang().equals(loggedInUser.getMaKhachHang()) &&
-                                existingVe.getNgayMua().after(fiveMinutesAgo)) {
-                            model.addAttribute("error", "Ghế " + seatId + " đang được giữ bởi người khác");
-                            return showSeatSelection(maPhim, maSuatChieu, session, model);
-                        }
-                    }
-                }
-            }
-
-            seatReservationService.updateSeatReservation(maSuatChieu, selectedSeatList, loggedInUser.getMaKhachHang(),
-                    phimEntity.getGiaVe());
-
-            session.setAttribute("selectedSeats", selectedSeats);
-            session.setAttribute("maPhim", maPhim);
-            session.setAttribute("maSuatChieu", maSuatChieu);
-
-            messagingTemplate.convertAndSend("/topic/seats/" + maSuatChieu, selectedSeatList);
-            return "redirect:/booking/select-food";
+            // Gọi lại reserveSeats để cập nhật ghế
+            return reserveSeats(maPhim, maSuatChieu, selectedSeats, session, model);
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi cập nhật ghế: " + e.getMessage());
@@ -348,8 +313,8 @@ public class BookingController {
             selectedSeats = (String) session.getAttribute("selectedSeats");
         }
 
-        if (maPhim == null || maSuatChieu == null || selectedSeats == null) {
-            model.addAttribute("error", "Thông tin đặt vé không đầy đủ.");
+        if (maPhim == null || maSuatChieu == null || selectedSeats == null || selectedSeats.isEmpty()) {
+            model.addAttribute("error", "Thông tin đặt vé không đầy đủ. Vui lòng chọn lại ghế.");
             return "redirect:/home/";
         }
 
@@ -962,15 +927,10 @@ public class BookingController {
     @RequestMapping(value = "/confirm-booking", method = RequestMethod.POST)
     public String confirmBooking(@RequestParam("maPhim") String maPhim,
                                 @RequestParam("maSuatChieu") String maSuatChieu,
-                                @RequestParam("selectedSeats") String selectedSeats,
+                                @RequestParam(value = "selectedSeats", required = false) String selectedSeats,
                                 HttpSession session,
                                 Model model) {
-        if (selectedSeats == null || selectedSeats.isEmpty()) {
-            model.addAttribute("error", "Vui lòng chọn ít nhất một ghế");
-            return showSeatSelection(maPhim, maSuatChieu, session, model);
-        }
-
-        return "forward:/booking/reserve-seats";
+        return "forward:/booking/update-seats";
     }
 
     @Transactional
@@ -1004,6 +964,7 @@ public class BookingController {
         session.removeAttribute("selectedSeats");
         session.removeAttribute("maPhim");
         session.removeAttribute("maSuatChieu");
+        session.removeAttribute("reservationStartTime");
         session.removeAttribute("selectedCombos");
         session.removeAttribute("selectedBapNuocs");
         session.removeAttribute("vePrices");
