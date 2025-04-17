@@ -40,6 +40,15 @@ public class BookingController {
                                    @RequestParam(value = "maSuatChieu", required = false) String maSuatChieu,
                                    HttpSession session,
                                    Model model) {
+        // Ưu tiên lấy từ session
+        if (maPhim == null) {
+            maPhim = (String) session.getAttribute("maPhim");
+        }
+        if (maSuatChieu == null) {
+            maSuatChieu = (String) session.getAttribute("maSuatChieu");
+        }
+
+        // Nếu vẫn không có, lấy từ redirect attributes
         if (maPhim == null || maSuatChieu == null) {
             maPhim = (String) session.getAttribute("redirectMaPhim");
             maSuatChieu = (String) session.getAttribute("redirectMaSuatChieu");

@@ -23,7 +23,6 @@ public class AdminSurchargeController {
     @Autowired
     private SessionFactory sessionFactory;
 
-    // Hiển thị trang quản lý phụ thu
     @RequestMapping(value = "/surcharges", method = RequestMethod.GET)
     public String showSurchargeManager(HttpSession session, Model model) {
         if (session.getAttribute("loggedInAdmin") == null) {
@@ -32,14 +31,12 @@ public class AdminSurchargeController {
 
         Session dbSession = sessionFactory.openSession();
         try {
-            // Tạo mã phụ thu mới
             Query query = dbSession.createQuery("FROM PhuThuEntity ORDER BY maPhuThu DESC");
             query.setMaxResults(1);
             PhuThuEntity latestPhuThu = (PhuThuEntity) query.uniqueResult();
             String newMaPhuThu = latestPhuThu == null ? "PT001" : String.format("PT%03d",
                     Integer.parseInt(latestPhuThu.getMaPhuThu().substring(2)) + 1);
 
-            // Lấy danh sách tất cả phụ thu
             Query allPhuThuQuery = dbSession.createQuery("FROM PhuThuEntity");
             List<PhuThuEntity> phuThuEntities = allPhuThuQuery.list();
             List<PhuThuModel> phuThuList = new ArrayList<>();
@@ -59,7 +56,6 @@ public class AdminSurchargeController {
         return "admin/surcharge_manager";
     }
 
-    // Thêm phụ thu mới
     @Transactional
     @RequestMapping(value = "/surcharges/add", method = RequestMethod.POST)
     public String addSurcharge(
@@ -73,11 +69,16 @@ public class AdminSurchargeController {
         }
 
         try {
+            if (maPhuThu == null || maPhuThu.trim().isEmpty() || tenPhuThu == null || tenPhuThu.trim().isEmpty() || gia == null || gia.compareTo(BigDecimal.ZERO) <= 0) {
+                model.addAttribute("error", "Vui lòng nhập đầy đủ thông tin và giá phụ thu phải lớn hơn 0.");
+                return "admin/surcharge_manager";
+            }
+
             Session dbSession = sessionFactory.getCurrentSession();
             PhuThuEntity phuThu = new PhuThuEntity();
             phuThu.setMaPhuThu(maPhuThu);
             phuThu.setTenPhuThu(tenPhuThu);
-            phuThu.setGia(gia);
+            phuThu.setGiaPhuThu(gia);
 
             dbSession.save(phuThu);
             return "redirect:/admin/surcharges";
@@ -88,7 +89,6 @@ public class AdminSurchargeController {
         }
     }
 
-    // Cập nhật phụ thu
     @Transactional
     @RequestMapping(value = "/surcharges/update", method = RequestMethod.POST)
     public String updateSurcharge(
@@ -102,6 +102,11 @@ public class AdminSurchargeController {
         }
 
         try {
+            if (maPhuThu == null || maPhuThu.trim().isEmpty() || tenPhuThu == null || tenPhuThu.trim().isEmpty() || gia == null || gia.compareTo(BigDecimal.ZERO) <= 0) {
+                model.addAttribute("error", "Vui lòng nhập đầy đủ thông tin và giá phụ thu phải lớn hơn 0.");
+                return "admin/surcharge_manager";
+            }
+
             Session dbSession = sessionFactory.getCurrentSession();
             PhuThuEntity phuThu = (PhuThuEntity) dbSession.get(PhuThuEntity.class, maPhuThu);
             if (phuThu == null) {
@@ -110,7 +115,7 @@ public class AdminSurchargeController {
             }
 
             phuThu.setTenPhuThu(tenPhuThu);
-            phuThu.setGia(gia);
+            phuThu.setGiaPhuThu(gia);
             dbSession.update(phuThu);
             return "redirect:/admin/surcharges";
         } catch (Exception e) {
@@ -120,7 +125,6 @@ public class AdminSurchargeController {
         }
     }
 
-    // Xóa phụ thu
     @Transactional
     @RequestMapping(value = "/surcharges/delete/{maPhuThu}", method = RequestMethod.GET)
     public String deleteSurcharge(@PathVariable("maPhuThu") String maPhuThu, HttpSession session, Model model) {
@@ -131,11 +135,17 @@ public class AdminSurchargeController {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
             PhuThuEntity phuThu = (PhuThuEntity) dbSession.get(PhuThuEntity.class, maPhuThu);
-            if (phuThu != null) {
-                dbSession.delete(phuThu);
-            } else {
+            if (phuThu == null) {
                 model.addAttribute("error", "Không tìm thấy phụ thu với mã " + maPhuThu);
+                return "redirect:/admin/surcharges";
             }
+
+            if (!phuThu.getSuatChieus().isEmpty()) {
+                model.addAttribute("error", "Không thể xóa phụ thu vì nó đang được liên kết với các suất chiếu.");
+                return "redirect:/admin/surcharges";
+            }
+
+            dbSession.delete(phuThu);
             return "redirect:/admin/surcharges";
         } catch (Exception e) {
             e.printStackTrace();

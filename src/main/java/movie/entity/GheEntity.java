@@ -14,6 +14,12 @@ public class GheEntity {
 
     @Column(name = "TenHang", length = 10) // Cập nhật tên cột
     private String tenHang;
+    
+    @Column(name = "SoGheAdmin", length = 10)
+    private String soGheAdmin;
+
+    @Column(name = "TenHangAdmin", length = 10)
+    private String tenHangAdmin;
 
     @ManyToOne
     @JoinColumn(name = "MaLoaiGhe", referencedColumnName = "MaLoaiGhe") // Cập nhật tên cột
@@ -46,6 +52,22 @@ public class GheEntity {
 
     public void setTenHang(String tenHang) {
         this.tenHang = tenHang;
+    }
+    
+    public String getSoGheAdmin() {
+        return soGheAdmin;
+    }
+
+    public void setSoGheAdmin(String soGheAdmin) {
+        this.soGheAdmin = soGheAdmin;
+    }
+
+    public String getTenHangAdmin() {
+        return tenHangAdmin;
+    }
+
+    public void setTenHangAdmin(String tenHangAdmin) {
+        this.tenHangAdmin = tenHangAdmin;
     }
 
     public LoaiGheEntity getLoaiGhe() {

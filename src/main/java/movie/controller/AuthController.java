@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpSession;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
@@ -30,6 +28,11 @@ public class AuthController {
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String showLoginPage(Model model) {
         return "auth/login";
+    }
+    
+    @RequestMapping(value = "/register", method = RequestMethod.GET)
+    public String showRegisterPage(Model model) {
+        return "auth/register";
     }
 
     @Transactional
@@ -69,17 +72,20 @@ public class AuthController {
                 String redirectMaPhim = (String) session.getAttribute("redirectMaPhim");
                 String redirectMaSuatChieu = (String) session.getAttribute("redirectMaSuatChieu");
                 
-                session.removeAttribute("redirectAfterLogin");
-                session.removeAttribute("redirectMaPhim");
-                session.removeAttribute("redirectMaSuatChieu");
-                
                 if (redirectUrl != null && redirectUrl.contains("/booking/select-seats") && 
                     redirectMaPhim != null && redirectMaSuatChieu != null) {
-                    String redirectWithParams = "/booking/select-seats?maPhim=" + 
-                        URLEncoder.encode(redirectMaPhim, StandardCharsets.UTF_8.toString()) + 
-                        "&maSuatChieu=" + URLEncoder.encode(redirectMaSuatChieu, StandardCharsets.UTF_8.toString());
-                    return new ModelAndView("redirect:" + redirectWithParams);
+                    // Lưu maPhim và maSuatChieu vào session để BookingController sử dụng
+                    session.setAttribute("maPhim", redirectMaPhim);
+                    session.setAttribute("maSuatChieu", redirectMaSuatChieu);
+                    // Xóa các thuộc tính tạm thời
+                    session.removeAttribute("redirectAfterLogin");
+                    session.removeAttribute("redirectMaPhim");
+                    session.removeAttribute("redirectMaSuatChieu");
+                    return new ModelAndView("redirect:/booking/select-seats");
                 } else if (redirectUrl != null && !redirectUrl.isEmpty()) {
+                    session.removeAttribute("redirectAfterLogin");
+                    session.removeAttribute("redirectMaPhim");
+                    session.removeAttribute("redirectMaSuatChieu");
                     return new ModelAndView("redirect:" + redirectUrl);
                 }
                 

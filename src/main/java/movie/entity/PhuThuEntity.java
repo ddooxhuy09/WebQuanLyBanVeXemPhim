@@ -16,26 +16,23 @@ public class PhuThuEntity {
     private String tenPhuThu;
 
     @Column(name = "Gia")
-    private BigDecimal gia;
+    private BigDecimal giaPhuThu;
 
     @ManyToMany
     @JoinTable(
-        name = "SuatChieu_PhuThu",
+        name = "PhuThuSuatChieu", // Sửa tên bảng từ "SuatChieu_PhuThu" thành "PhuThuSuatChieu"
         joinColumns = @JoinColumn(name = "MaPhuThu"),
         inverseJoinColumns = @JoinColumn(name = "MaSuatChieu")
     )
     private Set<SuatChieuEntity> suatChieus = new HashSet<>();
-
-    // Constructors
-    public PhuThuEntity() {}
 
     // Getters và Setters
     public String getMaPhuThu() { return maPhuThu; }
     public void setMaPhuThu(String maPhuThu) { this.maPhuThu = maPhuThu; }
     public String getTenPhuThu() { return tenPhuThu; }
     public void setTenPhuThu(String tenPhuThu) { this.tenPhuThu = tenPhuThu; }
-    public BigDecimal getGia() { return gia; }
-    public void setGia(BigDecimal gia) { this.gia = gia; }
+    public BigDecimal getGiaPhuThu() { return giaPhuThu; }
+    public void setGiaPhuThu(BigDecimal giaPhuThu) { this.giaPhuThu = giaPhuThu; }
     public Set<SuatChieuEntity> getSuatChieus() { return suatChieus; }
     public void setSuatChieus(Set<SuatChieuEntity> suatChieus) { this.suatChieus = suatChieus; }
 }

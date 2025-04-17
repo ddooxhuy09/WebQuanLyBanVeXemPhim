@@ -12,6 +12,7 @@ public class DonHangModel {
     private boolean datHang;
     private Date ngayDat;
     private Integer diemSuDung;
+    private KhachHangModel khachHang; // Thêm thuộc tính khachHang
 
     // Constructors
     public DonHangModel() {}
@@ -46,4 +47,6 @@ public class DonHangModel {
     public void setNgayDat(Date ngayDat) { this.ngayDat = ngayDat; }
     public Integer getDiemSuDung() { return diemSuDung; }
     public void setDiemSuDung(Integer diemSuDung) { this.diemSuDung = diemSuDung; }
+    public KhachHangModel getKhachHang() { return khachHang; }
+    public void setKhachHang(KhachHangModel khachHang) { this.khachHang = khachHang; }
 }

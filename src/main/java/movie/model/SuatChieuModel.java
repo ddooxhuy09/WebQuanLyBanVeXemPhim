@@ -1,6 +1,8 @@
 package movie.model;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SuatChieuModel {
     private String maSuatChieu;
@@ -9,8 +11,11 @@ public class SuatChieuModel {
     private Timestamp ngayGioChieu;
     private Timestamp ngayGioKetThuc;
     private String loaiManChieu;
+    private List<String> maPhuThus;
 
-    public SuatChieuModel() {}
+    public SuatChieuModel() {
+        this.maPhuThus = new ArrayList<>();
+    }
 
     public SuatChieuModel(movie.entity.SuatChieuEntity entity) {
         if (entity != null) {
@@ -20,6 +25,12 @@ public class SuatChieuModel {
             this.ngayGioChieu = entity.getNgayGioChieu();
             this.ngayGioKetThuc = entity.getNgayGioKetThuc();
             this.loaiManChieu = entity.getLoaiManChieu();
+            this.maPhuThus = new ArrayList<>();
+            if (entity.getPhuThus() != null) {
+                for (movie.entity.PhuThuEntity phuThu : entity.getPhuThus()) {
+                    this.maPhuThus.add(phuThu.getMaPhuThu());
+                }
+            }
         }
     }
 
@@ -36,4 +47,6 @@ public class SuatChieuModel {
     public void setNgayGioKetThuc(Timestamp ngayGioKetThuc) { this.ngayGioKetThuc = ngayGioKetThuc; }
     public String getLoaiManChieu() { return loaiManChieu; }
     public void setLoaiManChieu(String loaiManChieu) { this.loaiManChieu = loaiManChieu; }
+    public List<String> getMaPhuThus() { return maPhuThus; }
+    public void setMaPhuThus(List<String> maPhuThus) { this.maPhuThus = maPhuThus; }
 }

@@ -43,15 +43,15 @@
             <a href="${pageContext.request.contextPath}/admin/movies" class="nav-link" title="Quản Lý Phim">
                 <i class="fas fa-film"></i> <span>Quản Lý Phim</span>
             </a>
-            <a href="#" class="nav-link" title="Quản Lý Suất Chiếu">
-                <i class="fas fa-calendar-alt"></i> <span>Quản Lý Suất Chiếu</span>
-            </a>
+            <a href="${pageContext.request.contextPath}/admin/showtimes" class="nav-link" title="Quản Lý Suất Chiếu">
+			    <i class="fas fa-calendar-alt"></i> <span>Quản Lý Suất Chiếu</span>
+			</a>
             <a href="#" class="nav-link" title="Quản Lý Ghế">
                 <i class="fas fa-chair"></i> <span>Quản Lý Ghế</span>
             </a>
-            <a href="#" class="nav-link" title="Quản Lý Phòng Chiếu">
-                <i class="fas fa-theater-masks"></i> <span>Quản Lý Phòng Chiếu</span>
-            </a>
+            <a href="${pageContext.request.contextPath}/admin/theater-rooms" class="nav-link" title="Quản Lý Phòng Chiếu">
+			    <i class="fas fa-theater-masks"></i> <span>Quản Lý Phòng Chiếu</span>
+			</a>
             <a href="${pageContext.request.contextPath}/admin/theaters" class="nav-link" title="Quản Lý Rạp Chiếu">
                 <i class="fas fa-building"></i> <span>Quản Lý Rạp Chiếu</span>
             </a>
@@ -61,9 +61,9 @@
             <a href="#" class="nav-link" title="Quản Lý Vé">
                 <i class="fas fa-ticket-alt"></i> <span>Quản Lý Vé</span>
             </a>
-            <a href="#" class="nav-link" title="Quản Lý Đơn Hàng">
-                <i class="fas fa-shopping-cart"></i> <span>Quản Lý Đơn Hàng</span>
-            </a>
+            <a href="${pageContext.request.contextPath}/admin/orders" class="nav-link" title="Quản Lý Đơn Hàng">
+			    <i class="fas fa-shopping-cart"></i> <span>Quản Lý Đơn Hàng</span>
+			</a>
             <a href="#" class="nav-link" title="Quản Lý Thanh Toán">
                 <i class="fas fa-money-bill"></i> <span>Quản Lý Thanh Toán</span>
             </a>
@@ -76,18 +76,16 @@
 
             <!-- Quản Lý Khách Hàng & Ưu Đãi -->
             <div class="nav-section-title">Quản Lý Khách Hàng & Ưu Đãi</div>
-            <a href="#" class="nav-link" title="Quản Lý Khách Hàng">
-                <i class="fas fa-users"></i> <span>Quản Lý Khách Hàng</span>
-            </a>
-            <a href="#" class="nav-link" title="Quản Lý Điểm Khách Hàng">
-                <i class="fas fa-star"></i> <span>Quản Lý Điểm Khách Hàng</span>
-            </a>
+
+            <a href="${pageContext.request.contextPath}/admin/customers" class="nav-link" title="Quản Lý Khách Hàng">
+			    <i class="fas fa-users"></i> <span>Quản Lý Khách Hàng</span>
+			</a>
             <a href="${pageContext.request.contextPath}/admin/promotions" class="nav-link" title="Quản Lý Khuyến Mãi">
 			    <i class="fas fa-gift"></i> <span>Quản Lý Khuyến Mãi</span>
 			</a>
-            <a href="#" class="nav-link" title="Quản Lý Quy Đổi Điểm">
-                <i class="fas fa-exchange-alt"></i> <span>Quản Lý Quy Đổi Điểm</span>
-            </a>
+            <a href="${pageContext.request.contextPath}/admin/point-redemptions" class="nav-link" title="Quản Lý Quy Đổi Điểm">
+			    <i class="fas fa-exchange-alt"></i> <span>Quản Lý Quy Đổi Điểm</span>
+			</a>
             <a href="${pageContext.request.contextPath}/admin/surcharges" class="nav-link" title="Quản Lý Phụ Thu">
 			    <i class="fas fa-plus-circle"></i> <span>Quản Lý Phụ Thu</span>
 			</a>

@@ -14,6 +14,12 @@ public class LoaiGheEntity {
 
     @Column(name = "HeSoGia")
     private double heSoGia;
+    
+    @Column(name = "MauGhe", length = 20)
+    private String mauGhe;
+
+    @Column(name = "SoCho")
+    private int soCho;
 
     // Getters và Setters
     public String getMaLoaiGhe() { return maLoaiGhe; }
@@ -22,4 +28,8 @@ public class LoaiGheEntity {
     public void setTenLoaiGhe(String tenLoaiGhe) { this.tenLoaiGhe = tenLoaiGhe; }
     public double getHeSoGia() { return heSoGia; }
     public void setHeSoGia(double heSoGia) { this.heSoGia = heSoGia; }
+    public String getMauGhe() { return mauGhe; }
+    public void setMauGhe(String mauGhe) { this.mauGhe = mauGhe; }
+    public int getSoCho() { return soCho; }
+    public void setSoCho(int soCho) { this.soCho = soCho; }
 }
