@@ -18,7 +18,7 @@ An online movie ticket booking system facilitates the purchasing of movie ticket
     Movie Ticket Booking System
 </p>
 
-### System Requirements
+### **System Requirements**
 
 Our ticket reservation system must fulfill the following requirements:
 
@@ -35,7 +35,7 @@ Our ticket reservation system must fulfill the following requirements:
 11.  No two consumers should be able to reserve the same seat, according to the system.  
 12.  It should be possible for customers to apply a discount voucher to their purchase.
 
-### Use Case Diagram
+### **Use Case Diagram**
 
 We have five main Actors in our system:
 
@@ -52,8 +52,8 @@ The movie ticket booking system's most popular applications are as follows:
 * Pay for the reservation: to cover the reservation fee.  
 * Include a coupon with the purchase: to apply a coupon for a discount to the purchase.  
 * Assign Seat: To choose a seat for their reservation, customers will be presented with a seat map.  
-* Payment reimbursement: If a customer cancels within the allotted period, they will receive a refund of the full amount paid.  
-  
+* Payment reimbursement: If a customer cancels within the allotted period, they will receive a refund of the full amount paid.
+
 Here is the use case diagram of Movie Ticket Booking System:
 
 <p align="center">
@@ -66,18 +66,18 @@ Here is the use case diagram of Movie Ticket Booking System:
 
 Here are the main classes of the Movie Ticket Booking System:
 
-* **Account:** Admin will be able to add/remove movies and shows, as well as block/unblock accounts. Customers can search for movies and make bookings for shows. FrontDeskOffice can book tickets for movie shows.
-* **Guest:** Guests can search and view movies descriptions. To make a booking for a show they have to become a registered member.
-* **Cinema:** The main part of the organization for which this software has been designed. It has attributes like ‘name’ to distinguish it from other cinemas.
-* **CinemaHall:** Each cinema will have multiple halls containing multiple seats.
-* **City:** Each city can have multiple cinemas.
-* **Movie:** The main entity of the system. Movies have attributes like title, description, language, genre, release date, city name, etc.
-* **Show:** Each movie can have many shows; each show will be played in a cinema hall.
-* **CinemaHallSeat:** Each cinema hall will have many seats.
-* **ShowSeat:** Each ShowSeat will correspond to a movie Show and a CinemaHallSeat. Customers will make a booking against a ShowSeat.
-* **Booking:** A booking is against a movie show and has attributes like a unique booking number, number of seats, and status.
-* **Payment:** Responsible for collecting payments from customers.
-* **Notification:** Will take care of sending notifications to customers.
+* **Account:** The administrator will have the ability to block and unblock accounts in addition to adding and removing movies and shows. Consumers are able to book shows and conduct movie searches. Movie show tickets can be purchased through FrontDeskOffice.
+* **Guest:** Visitors can look up and read movie synopses. They must register as members in order to book a show.
+* **Cinema:** The primary function of the company for which this software was created. Its "name" is one of its characteristics that sets it apart from other movie theaters.s.
+* **CinemaHall:** Every movie theater will have several halls with a number of seats.
+* **City:** There can be more than one movie theater in each city..
+* **Movie:** The system's central component. Title, description, language, genre, release date, city name, and so on are all characteristics of movies.
+* **Show:** Every film may have multiple showings, all of which will take place in a theater..
+* **CinemaHallSeat:** There will be plenty of seats in each movie theater.
+* **ShowSeat:** Every ShowSeat will match a CinemaHallSeat and a movie Show. Clients will reserve a seat based on a ShowSeat..
+* **Booking:** A booking has characteristics like a unique booking number, number of seats, and status and is made in opposition to a movie show.
+* **Payment:** In charge of obtaining payments from clients..
+* **Notification:** Will handle informing clients.
 
 <p align="center">
     <img src="/media-files/mtbs-class-diagram.png" alt="Movie Ticket Booking System Class Diagram">
@@ -389,3 +389,4 @@ COMMIT TRANSACTION;
 Once the above database transaction is successful, we can safely assume that the reservation has been marked successfully and no two customers will be able to reserve the same seat.
 
 Read [JDBC Transaction Isolation Levels](https://docs.microsoft.com/en-us/sql/connect/jdbc/understanding-isolation-levels?view=sql-server-2017) for details.
+
