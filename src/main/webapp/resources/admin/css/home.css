@@ -1,0 +1,50 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-family: var(--heading-font-family);
+    font-size: 1.75rem;
+    color: var(--text-color);
+}
+
+
+.home-cards .card {
+    text-align: center;
+    padding: 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--card-bg-color);
+    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: background-color 0.3s ease;
+}
+
+.home-cards .card:hover {
+    background: #F5F6FA; /* Xám nhạt nhẹ khi hover */
+}
+
+.home-cards i {
+    font-size: 2rem;
+    color: var(--accent-color);
+    margin-bottom: 10px;
+}
+
+.home-cards .card-title {
+    font-family: var(--heading-font-family);
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.home-cards .card-text {
+    font-family: var(--font-family);
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.home-cards .btn {
+    transition: background-color 0.3s ease;
+}
+

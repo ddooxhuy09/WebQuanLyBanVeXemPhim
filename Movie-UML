@@ -1,0 +1,93 @@
+<h1 align="center">Design a Movie Ticket Booking System</h1>
+<h3 align="center">Let's design Movie Ticket Booking System</h3>
+
+**We'll cover the following:**
+
+* [System Requirements](#system-requirements)
+* [Use Case Diagram](#use-case-diagram)
+* [Class Diagram](#class-diagram)
+* [Activity Diagrams](#activity-diagrams)
+* [Code](#code)
+* [Concurrency](#concurrency)
+
+An online movie ticket booking system facilitates the purchasing of movie tickets to its customers. E-ticketing systems allow customers to browse through movies currently playing and book seats, anywhere and anytime.
+
+<p align="center">
+    <img src="/media-files/movie-ticket-booking-system.png" alt="Movie Ticket Booking System">
+    <br />
+    Movie Ticket Booking System
+</p>
+
+### **System Requirements**
+
+Our ticket reservation system must fulfill the following requirements:
+
+1. It needs to provide a list of the cities that have affiliate cinemas.  
+2. Each cinema may contain several halls, with each hall capable of screening one film at any given moment.  
+3. Every movie can have several screenings.  
+4. name for customers.  
+5. Following the customer's selection of a film, the service need should list the theaters showing that film along with its upcoming showings.  
+6. The consumer should be able to reserve their tickets and choose a play at a specific theater.   
+7. The customer should be shown the movie theater's seating layout by the provider. It should be possible for the consumer to choose from a variety of chairs.  
+8. The client ought to be able to tell the difference between reserved and open seats.  
+9. Notifications should be sent by the system whenever a new movie is released and if a reservation is made or canceled.  
+10. Our system should allow users to pay with cash or credit cards.  
+11.  No two consumers should be able to reserve the same seat, according to the system.  
+12.  It should be possible for customers to apply a discount voucher to their purchase.
+
+### **Use Case Diagram**
+
+We have five main Actors in our system:
+
+* Admin: In charge of blocking and unblocking users, adding new films and their series, and canceling any existing ones, etc.  
+* FrontDeskOfficer: Are able to book and cancel tickets.  
+* Customer: Able to book, cancel, and view movie schedules.  
+* Guest: All visitors are able to browse the movies, but they must register as members in order to reserve seats.  
+* System: primarily in charge of notifying users of new films, reservations, cancellations, etc.
+
+The movie ticket booking system's most popular applications are as follows:
+
+* Look up movies: to look for films by city name, release date, language, genre, and title.  
+* Make, edit, or view a reservation: To purchase, cancel, or browse show details for a movie show.  
+* Pay for the reservation: to cover the reservation fee.  
+* Include a coupon with the purchase: to apply a coupon for a discount to the purchase.  
+* Assign Seat: To choose a seat for their reservation, customers will be presented with a seat map.  
+* Payment reimbursement: If a customer cancels within the allotted period, they will receive a refund of the full amount paid.
+
+Here is the use case diagram of Movie Ticket Booking System:
+
+<p align="center">
+    <img src="/media-files/mtbs-use-case-diagram.svg" alt="Movie Ticket Booking System Use Case Diagram">
+    <br />
+    Use Case Diagram for Movie Ticket Booking System
+</p>
+
+### Class Diagram
+
+Here are the main classes of the Movie Ticket Booking System:
+
+* **Account:** The administrator will have the ability to block and unblock accounts in addition to adding and removing movies and shows. Consumers are able to book shows and conduct movie searches. Movie show tickets can be purchased through FrontDeskOffice.
+* **Guest:** Visitors can look up and read movie synopses. They must register as members in order to book a show.
+* **Cinema:** The primary function of the company for which this software was created. Its "name" is one of its characteristics that sets it apart from other movie theaters.s.
+* **CinemaHall:** Every movie theater will have several halls with a number of seats.
+* **City:** There can be more than one movie theater in each city..
+* **Movie:** The system's central component. Title, description, language, genre, release date, city name, and so on are all characteristics of movies.
+* **Show:** Every film may have multiple showings, all of which will take place in a theater..
+* **CinemaHallSeat:** There will be plenty of seats in each movie theater.
+* **ShowSeat:** Every ShowSeat will match a CinemaHallSeat and a movie Show. Clients will reserve a seat based on a ShowSeat..
+* **Booking:** A booking has characteristics like a unique booking number, number of seats, and status and is made in opposition to a movie show.
+* **Payment:** In charge of obtaining payments from clients..
+* **Notification:** Will handle informing clients.
+
+<p align="center">
+    <img src="/media-files/mtbs-class-diagram.png" alt="Movie Ticket Booking System Class Diagram">
+    <br />
+    Class Diagram for Movie Ticket Booking System
+</p>
+
+<p align="center">
+    <img src="/media-files/mtbs-uml.svg" alt="Movie Ticket Booking System UML">
+    <br />
+    UML for Movie Ticket Booking System
+</p>
+

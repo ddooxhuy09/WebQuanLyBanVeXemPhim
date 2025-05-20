@@ -1,0 +1,310 @@
+/* Root Sidebar Styles */
+.sidebar {
+    width: 20rem; /* ~320px at 16px base font, scales with root font size */
+    flex-shrink: 0;
+    background: var(--sidebar-bg-color); /* #001C44 */
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    left: 0;
+    box-shadow: 0.125rem 0 0.625rem var(--shadow-color); /* 2px 0 10px */
+    transition: width 0.3s ease;
+}
+
+/* Collapsed State */
+.sidebar.collapsed {
+    width: 4rem; /* ~64px */
+    padding: 1rem 0;
+}
+
+/* Sidebar Header */
+.sidebar .sidebar-header h2 {
+    font-family: var(--heading-font-family);
+    font-size: 1.5rem;
+    color: var(--text-color-light); /* #F8DAD0 */
+    margin-bottom: 0;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.sidebar .toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-light); /* #F8DAD0 */
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    line-height: 1;
+}
+
+.sidebar.collapsed .sidebar-header h2 {
+    display: none;
+}
+
+/* User Info */
+.sidebar .user-info {
+    padding: 0.6rem 0.75rem; /* Already matches .nav-link */
+    color: var(--text-color-light); /* #F8DAD0, matches .nav-link */
+    font-family: var(--font-family); /* Matches .nav-link */
+    margin-bottom: 0.25rem; /* Matches .nav-link */
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem; /* Matches .nav-link */
+    border-radius: 0.25rem; /* Add to match .nav-link */
+    transition: all 0.3s ease; /* Add to match .nav-link */
+    position: relative; /* Add for tooltip in collapsed state, like .nav-link */
+}
+
+.sidebar .user-info i {
+    margin-right: 0.75rem; /* Already matches .nav-link */
+    color: var(--accent-color); /* #2C99AE, matches .nav-link */
+    width: 1.25rem; /* 20px, matches .nav-link */
+    text-align: center;
+    font-size: 1rem; /* Matches .nav-link */
+}
+
+.sidebar .user-info span {
+    font-size: 0.95rem; /* Already matches .nav-link */
+}
+
+/* Hover Effect for User Info */
+.sidebar .user-info:hover {
+    background: var(--hover-color); /* #0C5776, matches .nav-link */
+    color: var(--text-color-light); /* #F8DAD0, matches .nav-link */
+}
+
+/* Collapsed State for User Info */
+.sidebar.collapsed .user-info {
+    padding: 0.6rem 0; /* Already matches .nav-link */
+    justify-content: center; /* Already matches .nav-link */
+}
+
+.sidebar.collapsed .user-info span {
+    display: block; /* Change to match .nav-link behavior for tooltip */
+    position: absolute;
+    left: 4rem; /* Matches .nav-link in collapsed state */
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--hover-color); /* #0C5776, matches .nav-link */
+    color: var(--text-color-light); /* #F8DAD0, matches .nav-link */
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    z-index: 1000;
+    font-size: 0.9rem;
+    box-shadow: 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.2); /* Matches .nav-link */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease; /* Matches .nav-link */
+}
+
+.sidebar.collapsed .user-info:hover span {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Larger Icons in Collapsed State (Already Matches) */
+.sidebar.collapsed .user-info i {
+    font-size: 1.25rem;
+    width: 1.5rem; /* Already matches .nav-link */
+}
+
+/* Navigation Section Title */
+.sidebar .nav-section-title {
+    padding: 1rem 0 0.25rem 0;
+    color: var(--text-color-light); /* #F8DAD0 */
+    font-family: var(--heading-font-family);
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.sidebar.collapsed .nav-section-title {
+    display: none;
+}
+
+/* Navigation Links */
+.sidebar .nav-link {
+    font-family: var(--font-family);
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    color: var(--text-color-light); /* #F8DAD0 */
+    border-radius: 0.25rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.sidebar .nav-link i {
+    margin-right: 0.75rem;
+    color: var(--accent-color); /* #2C99AE */
+    width: 1.25rem; /* 20px */
+    text-align: center;
+    font-size: 1rem;
+}
+
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 0.6rem 0;
+}
+
+.sidebar.collapsed .nav-link i {
+    margin-right: 0;
+}
+
+/* Larger Icons in Collapsed State */
+.sidebar.collapsed .nav-link i,
+.sidebar.collapsed .user-info i {
+    font-size: 1.25rem;
+    width: 1.5rem; /* 24px */
+}
+
+/* Tooltip in Collapsed State */
+.sidebar.collapsed .nav-link span {
+    display: block;
+    position: absolute;
+    left: 4rem; /* Matches collapsed width */
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--hover-color); /* #0C5776 */
+    color: var(--text-color-light); /* #F8DAD0 */
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    z-index: 1000;
+    font-size: 0.9rem;
+    box-shadow: 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.2); /* 0 2px 5px */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.sidebar.collapsed .nav-link:hover span {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Center Toggle Button in Collapsed State */
+.sidebar.collapsed .sidebar-header {
+    justify-content: center;
+}
+
+/* Hover and Active States */
+.sidebar .nav-link:hover {
+    background: var(--hover-color); /* #0C5776 */
+    color: var(--text-color-light); /* #F8DAD0 */
+}
+
+.sidebar .nav-link.active {
+    background: var(--accent-color); /* #2C99AE */
+    color: var(--text-color-light); /* #F8DAD0 */
+    font-weight: 700;
+}
+
+.sidebar .nav-link.active i {
+    color: var(--text-color-light); /* #F8DAD0 */
+}
+
+/* Toggle Button */
+.sidebar .toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-light); /* #F8DAD0 */
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.sidebar .toggle-btn:hover {
+    color: var(--accent-color); /* #2C99AE */
+}
+
+/* Keep the original outline removal for toggle button */
+.toggle-btn:focus,
+.toggle-btn:focus-visible,
+.toggle-btn:active {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 16rem; /* Smaller width on tablets */
+    }
+
+    .sidebar.collapsed {
+        width: 3.5rem; /* Slightly smaller for smaller screens */
+    }
+
+    .sidebar.collapsed .nav-link span, .sidebar.collapsed .user-info span {
+        left: 3.5rem; /* Match collapsed width */
+    }
+
+    .sidebar .nav-link,
+    .sidebar .user-info {
+        font-size: 0.9rem; /* Slightly smaller text */
+    }
+
+    .sidebar .nav-link i,
+    .sidebar .user-info i {
+        width: 1rem; /* Smaller icons */
+        font-size: 0.9rem;
+    }
+
+    .sidebar.collapsed .nav-link i,
+    .sidebar.collapsed .user-info i {
+        width: 1.25rem; /* Adjusted for collapsed state */
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .sidebar {
+        width: 100%; /* Full width on mobile */
+        height: auto; /* Allow height to adjust */
+        position: relative; /* Remove sticky positioning */
+        box-shadow: none; /* Remove shadow for cleaner look */
+    }
+
+    .sidebar.collapsed {
+        width: 100%; /* Still full width but collapsed */
+        padding: 0.5rem 0;
+    }
+
+    .sidebar.collapsed .nav-link,
+    .sidebar.collapsed .user-info {
+        display: none; /* Hide nav links when collapsed on mobile */
+    }
+
+    .sidebar.collapsed .sidebar-header {
+        display: flex; /* Keep toggle button visible */
+    }
+
+    .sidebar .nav-link,
+    .sidebar .user-info {
+        font-size: 0.85rem; /* Even smaller text for mobile */
+    }
+
+    .sidebar .nav-link i,
+    .sidebar .user-info i {
+        width: 1rem;
+        font-size: 0.85rem;
+    }
+
+    .container-wrapper {
+        flex-direction: column; /* Stack sidebar and main content */
+    }
+
+    .main-content {
+        flex-grow: 1;
+        width: 100%;
+    }
+}
