@@ -83,27 +83,50 @@ public class AdminTheaterController {
             return "redirect:/admin/auth/login";
         }
 
-        try {
-            Session dbSession = sessionFactory.getCurrentSession();
+        Session dbSession = sessionFactory.getCurrentSession();
+        List<String> errors = new ArrayList<>();
 
-            RapChieuEntity rap = new RapChieuEntity();
-            rap.setMaRapChieu(maRapChieu);
-            rap.setTenRapChieu(tenRapChieu);
-            rap.setDiaChi(diaChi);
-            rap.setSoDienThoaiLienHe(soDienThoaiLienHe);
+        // Lưu dữ liệu người dùng nhập để hiển thị lại nếu có lỗi
+        model.addAttribute("tenRapChieu", tenRapChieu);
+        model.addAttribute("diaChi", diaChi);
+        model.addAttribute("soDienThoaiLienHe", soDienThoaiLienHe);
+        model.addAttribute("newMaRapChieu", maRapChieu);
 
-            dbSession.save(rap);
+        // Kiểm tra định dạng SĐT
+        if (soDienThoaiLienHe == null || !soDienThoaiLienHe.matches("\\d{10}")) {
+            errors.add("Số điện thoại phải gồm đúng 10 chữ số.");
+        }
 
-            return "redirect:/admin/theaters";
-        } catch (Exception e) {
-            e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi thêm rạp chiếu: " + e.getMessage());
+        // Kiểm tra trùng tên rạp, địa chỉ hoặc SĐT
+        Query query = dbSession.createQuery("FROM RapChieuEntity WHERE tenRapChieu = :tenRap OR diaChi = :diaChi OR soDienThoaiLienHe = :sdt");
+        query.setParameter("tenRap", tenRapChieu);
+        query.setParameter("diaChi", diaChi);
+        query.setParameter("sdt", soDienThoaiLienHe);
+
+        if (!query.list().isEmpty()) {
+            errors.add("Tên rạp, địa chỉ hoặc số điện thoại đã tồn tại.");
+        }
+
+        // Nếu có lỗi, thêm vào model và trả về form
+        if (!errors.isEmpty()) {
+            model.addAttribute("error", String.join(" ", errors));
+            loadTheaterData(model, dbSession);
             return "admin/theater_manager";
         }
+
+        // Lưu dữ liệu nếu không có lỗi
+        RapChieuEntity rap = new RapChieuEntity();
+        rap.setMaRapChieu(maRapChieu);
+        rap.setTenRapChieu(tenRapChieu);
+        rap.setDiaChi(diaChi);
+        rap.setSoDienThoaiLienHe(soDienThoaiLienHe);
+
+        dbSession.save(rap);
+
+        return "redirect:/admin/theaters";
     }
 
     // Hiển thị modal sửa rạp chiếu (trong thực tế, JSP đã xử lý qua JavaScript)
-    // Ở đây chỉ cần redirect lại trang chính sau khi chỉnh sửa
     @RequestMapping(value = "/theaters/edit/{maRapChieu}", method = RequestMethod.GET)
     public String showEditTheaterForm(@PathVariable("maRapChieu") String maRapChieu, HttpSession session, Model model) {
         if (session.getAttribute("loggedInAdmin") == null) {
@@ -129,26 +152,94 @@ public class AdminTheaterController {
             return "redirect:/admin/auth/login";
         }
 
-        try {
-            Session dbSession = sessionFactory.getCurrentSession();
+        Session dbSession = sessionFactory.getCurrentSession();
+        List<String> errors = new ArrayList<>();
 
-            RapChieuEntity rap = (RapChieuEntity) dbSession.get(RapChieuEntity.class, maRapChieu);
-            if (rap == null) {
-                model.addAttribute("error", "Không tìm thấy rạp chiếu với mã " + maRapChieu);
-                return "redirect:/admin/theaters";
+        try {
+            Object result = dbSession.get(RapChieuEntity.class, maRapChieu);
+            if (result == null) {
+                errors.add("Không tìm thấy rạp chiếu với mã " + maRapChieu);
+                model.addAttribute("error", String.join(" ", errors));
+                loadTheaterData(model, dbSession);
+                return "admin/theater_manager";
+            }
+            RapChieuEntity rap = (RapChieuEntity) result;
+
+            // Kiểm tra trùng lặp
+            Query query = dbSession.createQuery(
+                    "FROM RapChieuEntity WHERE (tenRapChieu = :tenRap OR diaChi = :diaChi OR soDienThoaiLienHe = :sdt) AND maRapChieu != :maRap");
+            query.setParameter("tenRap", tenRapChieu);
+            query.setParameter("diaChi", diaChi);
+            query.setParameter("sdt", soDienThoaiLienHe);
+            query.setParameter("maRap", maRapChieu);
+
+            if (!query.list().isEmpty()) {
+                errors.add("Tên rạp, địa chỉ hoặc số điện thoại đã tồn tại.");
             }
 
+            // Kiểm tra định dạng SĐT
+            if (soDienThoaiLienHe == null || !soDienThoaiLienHe.matches("\\d{10}")) {
+                errors.add("Số điện thoại phải gồm đúng 10 chữ số.");
+            }
+
+            // Nếu có lỗi, trả về form và giữ lại dữ liệu người dùng đã nhập
+            if (!errors.isEmpty()) {
+                model.addAttribute("error", String.join(" ", errors));
+                model.addAttribute("tenRapChieu_edit", tenRapChieu);
+                model.addAttribute("diaChi_edit", diaChi);
+                model.addAttribute("soDienThoaiLienHe_edit", soDienThoaiLienHe);
+                model.addAttribute("maRapChieu_edit", maRapChieu);
+                loadTheaterData(model, dbSession);
+                return "admin/theater_manager";
+            }
+
+            // Lưu nếu không có lỗi
             rap.setTenRapChieu(tenRapChieu);
             rap.setDiaChi(diaChi);
             rap.setSoDienThoaiLienHe(soDienThoaiLienHe);
-
             dbSession.update(rap);
 
             return "redirect:/admin/theaters";
+
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi cập nhật rạp chiếu: " + e.getMessage());
+            errors.add("Lỗi khi cập nhật rạp chiếu: " + e.getMessage());
+            model.addAttribute("error", String.join(" ", errors));
+            loadTheaterData(model, dbSession);
             return "admin/theater_manager";
+        }
+    }
+
+    // Hàm hỗ trợ load lại dữ liệu cho JSP
+    private void loadTheaterData(Model model, Session dbSession) {
+        try {
+            // Lấy lại danh sách rạp chiếu
+            Query allRapQuery = dbSession.createQuery("FROM RapChieuEntity");
+            @SuppressWarnings("unchecked")
+            List<RapChieuEntity> rapEntities = (List<RapChieuEntity>) allRapQuery.list();
+            List<RapChieuModel> rapModels = new ArrayList<>();
+            for (RapChieuEntity entity : rapEntities) {
+                rapModels.add(new RapChieuModel(entity));
+            }
+
+            // Lấy mã rạp mới nhất
+            Query query = dbSession.createQuery("FROM RapChieuEntity ORDER BY maRapChieu DESC");
+            query.setMaxResults(1);
+            RapChieuEntity latestRap = (RapChieuEntity) query.uniqueResult();
+
+            String newMaRapChieu;
+            if (latestRap == null) {
+                newMaRapChieu = "RC001";
+            } else {
+                String lastMaRap = latestRap.getMaRapChieu();
+                int lastId = Integer.parseInt(lastMaRap.substring(2));
+                newMaRapChieu = String.format("RC%03d", lastId + 1);
+            }
+
+            model.addAttribute("rapChieuList", rapModels);
+            model.addAttribute("newMaRapChieu", newMaRapChieu);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

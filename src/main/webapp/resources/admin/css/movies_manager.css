@@ -1,14 +1,5 @@
 .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.header h1 {
-    font-family: var(--heading-font-family);
-    font-size: 1.75rem;
-    color: var(--text-color);
+    flex-wrap: wrap;
 }
 
 /**Trang phim**/
@@ -77,7 +68,7 @@
     margin: 0.75rem 0;
     font-size: 0.9rem;
     width: 100%; /* Khớp với chiều rộng của container */
-    box-sizing: border-box; /* Đảm bảo padding không làm tăng chiều rộng */
+     /* Đảm bảo padding không làm tăng chiều rộng */
 }
 
 .seat-row {
@@ -85,7 +76,7 @@
     align-items: center;
     width: max-content; /* Vẫn giữ để hàng đủ rộng cho nội dung */
     min-width: 100%; /* Đảm bảo không nhỏ hơn container */
-    box-sizing: border-box;
+    
 }
 
 /* Điều chỉnh .seat-grid */
@@ -97,7 +88,7 @@
     padding: 0.5rem;
     max-width: 100%;
     width: 100%; /* Khớp với chiều rộng của container */
-    box-sizing: border-box;
+    
 }
 
 .seat-cell.label {
@@ -127,7 +118,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    box-sizing: border-box; /* Thêm để tính border và margin */
+     /* Thêm để tính border và margin */
 }
 
 .seat-cell.label {
@@ -175,7 +166,7 @@
     font-size: 0.9rem;
     background-color: var(--bg-base);
     color: var(--sidebar-bg-color);
-    box-sizing: border-box;
+    
     height: 100%;
     line-height: 1.5;
 }
@@ -197,43 +188,57 @@
 /*thẻ tag của bảng phim*/
 
 .tag-container {
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    padding: 0.3rem;
-    min-height: 2.4rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    align-items: center;
+    border: 0;
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: #F5F6FA;
+    color: var(--text-color);
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .tag {
-    background-color: #e9ecef;
-    padding: 0.1rem 0.5rem;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    margin: 0.1rem;
+    font-size: 0.9rem;
+    position: static;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: #F5F6FA;
+    color: var(--text-color);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: inline-block;
 }
-
 .remove-tag {
-    margin-left: 5px;
+   position: static;
+    transform: none;
     cursor: pointer;
+    padding: 0px 1px;
+    font-size: 0.9rem;
+    line-height: 1;
+    border-radius: 3px;
     font-weight: bold;
-    color: #dc3545;
+    margin-left: 10px;
+    height: auto;
+    width: auto;
 }
 
 .remove-tag:hover {
-    color: #bd2130;
+    color: #bd2130; /* Màu đỏ đậm hơn khi hover */
 }
 
 .tag-input {
-    border: none ;
-    flex-grow: 1;
-    min-width: 100px;
-    height: 25px ;
-    margin: 0 ;
-    box-shadow: none ;
+    border: none;
+    flex-grow: 0; /* Ngăn input giãn quá mức */
+    min-width: 80px; /* Độ rộng tối thiểu để nhập liệu */
+    width: 100%;
+    height: auto;
+    margin: 0.5rem 0;
+    box-shadow: none;
+    font-size: 0.85rem;
 }
 
 .tag-input:focus {
@@ -243,75 +248,88 @@
 /*thẻ tag của bảng phim*/
 
 /* Bộ lọc */
+
 .filter-section {
     display: flex;
-    flex-direction: row;
-    align-items: center; /* Căn giữa theo trục dọc */
-    gap: 10px; /* Khoảng cách giữa các phần tử */
-    margin-bottom: 15px;
-    flex-wrap: nowrap; /* Không cho phép xuống dòng */
-    width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng của cha */
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-section form {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
 }
 
 .filter-section .form-group {
-    flex: 1; /* Các form-group chiếm không gian đều nhau */
-    min-width: 150px; /* Giảm chiều rộng tối thiểu để vừa hàng */
-    max-width: 200px; /* Giới hạn chiều rộng tối đa */
-}
-
-.filter-section .form-control {
-    width: 100%; /* Đảm bảo input/select chiếm toàn bộ chiều rộng của form-group */
-    font-size: 14px; /* Giảm kích thước chữ để tiết kiệm không gian */
-}
-
-.filter-section .filter-btn {
-    padding: 8px 15px; /* Giữ padding đồng bộ */
-    border-radius: 5px;
-    font-size: 14px; /* Kích thước chữ đồng bộ với form-control */
-    height: 38px; /* Chiều cao đồng bộ với input/select (thường là 38px trong Bootstrap) */
-    line-height: 1.5; /* Căn chỉnh chữ trong nút */
+    flex: 1 1 auto;
+    min-width: 120px;
+    max-width: 200px;
+    margin: 10px;
+    padding: 0;
     display: flex;
-    align-items: center; /* Căn giữa chữ trong nút */
-    justify-content: center;
-    white-space: nowrap; /* Không cho phép chữ trong nút xuống dòng */
-}
-
-.form-group {
-    display: block;
-    width: 100%;
     flex-direction: column;
-    margin-bottom: 1rem;
-    padding: 0.375rem 0.75rem;
-    font-size: 1rem;
-    line-height: 1.5;
-    border-radius: 0.25rem;
 }
 
-.form-group label {
+.filter-section .form-group label {
     display: block;
-    width: 100%;
     font-family: var(--font-family);
     color: var(--text-color);
     font-weight: 500;
     margin-bottom: 5px;
+    font-size: 14px;
+    white-space: nowrap;
 }
 
-.form-control {
+.filter-section .form-control {
+    width: 100%;
+    font-size: 14px;
+    padding: 6px;
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    padding: 8px;
     font-family: var(--font-family);
     transition: border-color 0.3s ease;
 }
 
-.form-control:focus {
+.filter-section .form-control:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
 }
 
-.filter-section .custom-btn {
+.filter-section .filter-btn {
     padding: 8px 15px;
     border-radius: 5px;
+    font-size: 14px;
+    height: 38px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* .filter-section .custom-btn {
+    padding: 8px 15px;
+    border-radius: 5px;
+    margin: 2px;
+} */
+
+/* Ghi đè kiểu mặc định của Bootstrap */
+.form-group {
+    margin-bottom: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 /* hết Bộ lọc */
@@ -337,10 +355,10 @@
     background: var(--bg-base);
     padding: 1.5rem;
     border-radius: 0.5rem;
-    max-width: 95%;
+    max-width: 80%;
     max-height: 90vh;
     overflow: auto;
-    width: 500px;    
+    width: 100%;
     margin: auto;
 }
 
@@ -370,7 +388,7 @@
     padding: 1.5rem;
     max-height: 95vh;
     overflow: auto;
-    box-sizing: border-box;
+    
 }
 
 #editSeatMapModal .modal-content {
@@ -380,7 +398,7 @@
     padding: 1.5rem;
     max-height: 90vh; /* Giới hạn chiều cao để kích hoạt cuộn */
     overflow-y: auto; /* Chỉ cho phép cuộn dọc */
-    box-sizing: border-box;
+    
     background: var(--bg-base); /* Lấy từ .modal-content */
     border-radius: 0.5rem; /* Lấy từ .modal-content */
 }
@@ -448,7 +466,7 @@
     margin-bottom: 5px;
 }
 
-.detail-field span {
+/* .detail-field span {
     display: block;
     padding: 8px;
     border: 1px solid var(--border-color);
@@ -457,7 +475,7 @@
     color: var(--text-color);
     text-overflow: ellipsis;
     overflow: hidden;
-}
+} */
 
 .detail-field input,
 .detail-field select {
@@ -468,7 +486,7 @@
     font-family: var(--font-family);
     color: var(--text-color);
     background: var(--bg-base);
-    box-sizing: border-box;
+    
 }
 
 .detail-field input:focus,
@@ -523,11 +541,6 @@
     min-width: 0;
 }
 
-.custom-btn.btn-sm {
-    padding: 5px 10px;
-    border-radius: 5px;
-}
-
 .custom-btn.mt-3 {
     padding: 8px 15px;
     display: block; /* Ensure the button is full-width and centered */
@@ -547,14 +560,6 @@
 }
 
 /* end room-image */
-
-/* khuyến mãi*/
-.promotion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
 
 /* CSS mới cho lịch */
 .calendar-container {
@@ -625,7 +630,6 @@
     line-height: 1.3; /* Tăng nhẹ line-height */
     text-align: left;
     transition: background-color 0.2s, opacity 0.2s;
-    box-sizing: border-box;
     overflow: hidden; /* Quan trọng: ẩn nội dung tràn ra */
     padding: 3px 5px; /* Padding bên trong event block */
     color: white; /* Màu chữ mặc định là trắng */
@@ -852,3 +856,16 @@
     font-size: 1.1rem;
     padding: 15px;
 }
+
+/*Trailer của phim*/
+.url-trailer-view a {
+    color: #007bff;
+    text-decoration: none;
+}
+.url-trailer-view a:hover {
+    text-decoration: underline;
+}
+.url-trailer-view p, .url-trailer-edit {
+    margin: 0;
+}
+/*Trailer của phim*/

@@ -72,7 +72,7 @@
           p:driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
           p:url="jdbc:sqlserver://localhost:1433;databaseName=QLBanVeXemPhim;encrypt=true;trustServerCertificate=true;sslProtocol=TLSv1.2"
           p:username="sa"
-          p:password="123" />
+          p:password="1111" />
           
     <!-- Transaction Manager -->
     <bean id="transactionManager" 
