@@ -22,7 +22,8 @@ public class AdminOrderController {
     @Autowired
     private SessionFactory sessionFactory;
 
-    private static final int ITEMS_PER_PAGE = 10;
+    private static final int ITEMS_PER_PAGE = 25; // Tăng lên 25 để hiển thị nhiều hơn
+    private static final int PAGES_TO_SHOW = 5; // Giữ số trang hiển thị là 5
 
     @SuppressWarnings("deprecation")
     @RequestMapping(value = "/orders", method = RequestMethod.GET)
@@ -32,8 +33,8 @@ public class AdminOrderController {
             Model model) {
         Session dbSession = sessionFactory.openSession();
         try {
-            // Xây dựng truy vấn HQL với sắp xếp
-            String hql = "FROM DonHangEntity d";
+            // Xây dựng truy vấn HQL với JOIN FETCH để lấy thông tin khách hàng
+            String hql = "FROM DonHangEntity d LEFT JOIN FETCH d.khachHang k";
             String orderBy;
 
             switch (sortBy) {
@@ -53,11 +54,9 @@ public class AdminOrderController {
                     orderBy = " ORDER BY d.maDonHang DESC";
                     break;
                 case "customer-asc":
-                    hql = "FROM DonHangEntity d LEFT JOIN FETCH d.maKhachHang k";
                     orderBy = " ORDER BY k.tenKhachHang ASC";
                     break;
                 case "customer-desc":
-                    hql = "FROM DonHangEntity d LEFT JOIN FETCH d.maKhachHang k";
                     orderBy = " ORDER BY k.tenKhachHang DESC";
                     break;
                 case "date-desc":
@@ -73,7 +72,7 @@ public class AdminOrderController {
             Query countQuery = dbSession.createQuery("SELECT COUNT(d) FROM DonHangEntity d");
             Long totalItems = (Long) countQuery.uniqueResult();
 
-            // Tính phân trang
+            // Tính tổng số trang
             int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
             int start = (page - 1) * ITEMS_PER_PAGE;
 
@@ -83,25 +82,44 @@ public class AdminOrderController {
             query.setMaxResults(ITEMS_PER_PAGE);
             List<DonHangEntity> donHangEntities = query.list();
 
-            // Chuyển sang DonHangModel
+            // Chuyển sang DonHangModel và gán KhachHangModel
             List<DonHangModel> donHangModels = donHangEntities.stream()
-                    .map(DonHangModel::new)
+                    .map(d -> {
+                        DonHangModel donHangModel = new DonHangModel(d);
+                        if (d.getKhachHang() != null) {
+                            donHangModel.setKhachHang(new KhachHangModel(d.getKhachHang()));
+                        }
+                        return donHangModel;
+                    })
                     .collect(Collectors.toList());
 
-            // Gắn thông tin khách hàng vào DonHangModel
-            for (DonHangModel donHang : donHangModels) {
-                Query khachHangQuery = dbSession.createQuery("FROM KhachHangEntity WHERE maKhachHang = :maKhachHang");
-                khachHangQuery.setParameter("maKhachHang", donHang.getMaKhachHang());
-                KhachHangEntity khachHang = (KhachHangEntity) khachHangQuery.uniqueResult();
-                if (khachHang != null) {
-                    donHang.setKhachHang(new KhachHangModel(khachHang));
-                }
+            // Tính phạm vi trang hiển thị
+            List<Integer> pageRange = new ArrayList<>();
+            int startPage;
+            int endPage;
+
+            // Kiểm tra xem có phải lần đầu truy cập không
+            boolean isInitialRequest = (page == 1 && "date-desc".equals(sortBy));
+            if (isInitialRequest) {
+                // Nếu là lần đầu truy cập, bắt đầu từ trang 1
+                startPage = 1;
+                endPage = Math.min(totalPages, PAGES_TO_SHOW);
+            } else {
+                // Nếu không, tính phạm vi dựa trên trang hiện tại
+                startPage = Math.max(1, page - (PAGES_TO_SHOW / 2));
+                endPage = Math.min(totalPages, startPage + PAGES_TO_SHOW - 1);
+                startPage = Math.max(1, endPage - PAGES_TO_SHOW + 1);
+            }
+
+            for (int i = startPage; i <= endPage; i++) {
+                pageRange.add(i);
             }
 
             model.addAttribute("donHangList", donHangModels);
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", totalPages);
             model.addAttribute("sortBy", sortBy);
+            model.addAttribute("pageRange", pageRange); // Thêm phạm vi trang
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -114,34 +132,102 @@ public class AdminOrderController {
 
     @SuppressWarnings("deprecation")
     @RequestMapping(value = "/orders/detail/{maDonHang}", method = RequestMethod.GET)
-    @ResponseBody
-    public Map<String, Object> getOrderDetail(@PathVariable("maDonHang") String maDonHang) {
+    public String getOrderDetail(
+            @PathVariable("maDonHang") String maDonHang,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "sort", defaultValue = "date-desc") String sortBy,
+            Model model) {
         Session dbSession = sessionFactory.openSession();
-        Map<String, Object> response = new HashMap<>();
         try {
-            // Lấy đơn hàng
-            Query donHangQuery = dbSession.createQuery("FROM DonHangEntity d WHERE d.maDonHang = :maDonHang");
+            // Lấy danh sách đơn hàng để hiển thị lại danh sách
+            String hql = "FROM DonHangEntity d LEFT JOIN FETCH d.khachHang k";
+            String orderBy;
+
+            switch (sortBy) {
+                case "date-asc":
+                    orderBy = " ORDER BY d.ngayDat ASC";
+                    break;
+                case "price-desc":
+                    orderBy = " ORDER BY d.tongTien DESC";
+                    break;
+                case "price-asc":
+                    orderBy = " ORDER BY d.tongTien ASC";
+                    break;
+                case "order-id-asc":
+                    orderBy = " ORDER BY d.maDonHang ASC";
+                    break;
+                case "order-id-desc":
+                    orderBy = " ORDER BY d.maDonHang DESC";
+                    break;
+                case "customer-asc":
+                    orderBy = " ORDER BY k.tenKhachHang ASC";
+                    break;
+                case "customer-desc":
+                    orderBy = " ORDER BY k.tenKhachHang DESC";
+                    break;
+                case "date-desc":
+                default:
+                    orderBy = " ORDER BY d.ngayDat DESC";
+                    sortBy = "date-desc";
+                    break;
+            }
+
+            hql += orderBy;
+
+            Query countQuery = dbSession.createQuery("SELECT COUNT(d) FROM DonHangEntity d");
+            Long totalItems = (Long) countQuery.uniqueResult();
+            int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+            int start = (page - 1) * ITEMS_PER_PAGE;
+
+            Query query = dbSession.createQuery(hql);
+            query.setFirstResult(start);
+            query.setMaxResults(ITEMS_PER_PAGE);
+            List<DonHangEntity> donHangEntities = query.list();
+
+            List<DonHangModel> donHangModels = donHangEntities.stream()
+                    .map(d -> {
+                        DonHangModel donHangModel = new DonHangModel(d);
+                        if (d.getKhachHang() != null) {
+                            donHangModel.setKhachHang(new KhachHangModel(d.getKhachHang()));
+                        }
+                        return donHangModel;
+                    })
+                    .collect(Collectors.toList());
+
+            // Tính phạm vi trang hiển thị (giữ logic động cho getOrderDetail)
+            List<Integer> pageRange = new ArrayList<>();
+            int startPage = Math.max(1, page - (PAGES_TO_SHOW / 2));
+            int endPage = Math.min(totalPages, startPage + PAGES_TO_SHOW - 1);
+            startPage = Math.max(1, endPage - PAGES_TO_SHOW + 1);
+
+            for (int i = startPage; i <= endPage; i++) {
+                pageRange.add(i);
+            }
+
+            model.addAttribute("donHangList", donHangModels);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", totalPages);
+            model.addAttribute("sortBy", sortBy);
+            model.addAttribute("pageRange", pageRange); // Thêm phạm vi trang
+
+            // Lấy chi tiết đơn hàng
+            Query donHangQuery = dbSession.createQuery("FROM DonHangEntity d LEFT JOIN FETCH d.khachHang k WHERE d.maDonHang = :maDonHang");
             donHangQuery.setParameter("maDonHang", maDonHang);
             DonHangEntity donHang = (DonHangEntity) donHangQuery.uniqueResult();
 
             if (donHang == null) {
-                response.put("error", "Không tìm thấy đơn hàng với mã " + maDonHang);
-                return response;
+                model.addAttribute("error", "Không tìm thấy đơn hàng với mã " + maDonHang);
+                return "admin/order_manager";
             }
-
-            // Lấy thông tin khách hàng
-            Query khachHangQuery = dbSession.createQuery("FROM KhachHangEntity WHERE maKhachHang = :maKhachHang");
-            khachHangQuery.setParameter("maKhachHang", donHang.getMaKhachHang());
-            KhachHangEntity khachHang = (KhachHangEntity) khachHangQuery.uniqueResult();
-
-            SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
-            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
 
             // Lấy thông tin vé
             List<Map<String, String>> tickets = new ArrayList<>();
             Query veQuery = dbSession.createQuery("FROM VeEntity v WHERE v.donHang.maDonHang = :maDonHang");
             veQuery.setParameter("maDonHang", maDonHang);
             List<VeEntity> veList = veQuery.list();
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
 
             for (VeEntity ve : veList) {
                 Map<String, String> ticket = new HashMap<>();
@@ -157,11 +243,10 @@ public class AdminOrderController {
                 }
             }
 
-            // Lấy thông tin combo và bắp nước từ ChiTietDonHangCombo và ChiTietDonHangBapNuoc
+            // Lấy thông tin combo và bắp nước
             List<Map<String, String>> combos = new ArrayList<>();
             BigDecimal comboTotal = BigDecimal.ZERO;
 
-            // Combo từ ChiTietDonHangCombo
             Query comboQuery = dbSession.createQuery("FROM ChiTietDonHangComboEntity c WHERE c.donHang.maDonHang = :maDonHang");
             comboQuery.setParameter("maDonHang", maDonHang);
             List<ChiTietDonHangComboEntity> comboList = comboQuery.list();
@@ -183,7 +268,6 @@ public class AdminOrderController {
                 }
             }
 
-            // Bắp nước từ ChiTietDonHangBapNuoc
             Query bapNuocQuery = dbSession.createQuery("FROM ChiTietDonHangBapNuocEntity b WHERE b.donHang.maDonHang = :maDonHang");
             bapNuocQuery.setParameter("maDonHang", maDonHang);
             List<ChiTietDonHangBapNuocEntity> bapNuocList = bapNuocQuery.list();
@@ -240,33 +324,34 @@ public class AdminOrderController {
                 }
             }
 
-            // Xây dựng phản hồi JSON
-            response.put("maDonHang", donHang.getMaDonHang());
-            response.put("tenPhim", tenPhim);
-            response.put("gioChieu", gioChieu);
-            response.put("ngayChieu", ngayChieu);
-            response.put("phongChieu", phongChieu);
-            response.put("rapChieu", rapChieu);
-            response.put("ngayDat", dateFormat.format(donHang.getNgayDat()));
-            response.put("tenKhachHang", khachHang != null ? khachHang.getTenKhachHang() : "N/A");
-            response.put("dienThoai", khachHang != null ? khachHang.getSoDienThoai() : "N/A");
-            response.put("email", khachHang != null ? khachHang.getEmail() : "N/A");
-            response.put("trangThai", donHang.isDatHang() ? "Đã xác nhận" : "Chưa xác nhận");
-            response.put("maKhuyenMai", donHang.getMaKhuyenMai() != null ? donHang.getMaKhuyenMai() : "Không có");
-            response.put("giamGia", "0 VNĐ"); // Giả sử chưa có logic giảm giá
-            response.put("phuThu", "0 VNĐ"); // Giả sử chưa có logic phụ thu
-            response.put("thanhTien", donHang.getTongTien().toString() + " VNĐ");
-            response.put("tongTien", donHang.getTongTien().toString() + " VNĐ");
-            response.put("tickets", tickets);
-            response.put("combos", combos);
-            response.put("comboTotal", comboTotal.toString() + " VNĐ");
+            // Điền dữ liệu chi tiết đơn hàng vào Model
+            model.addAttribute("showDetail", true);
+            model.addAttribute("maDonHang", donHang.getMaDonHang());
+            model.addAttribute("tenPhim", tenPhim);
+            model.addAttribute("gioChieu", gioChieu);
+            model.addAttribute("ngayChieu", ngayChieu);
+            model.addAttribute("phongChieu", phongChieu);
+            model.addAttribute("rapChieu", rapChieu);
+            model.addAttribute("ngayDat", dateFormat.format(donHang.getNgayDat()));
+            model.addAttribute("tenKhachHang", donHang.getKhachHang() != null ? donHang.getKhachHang().getTenKhachHang() : "N/A");
+            model.addAttribute("dienThoai", donHang.getKhachHang() != null ? donHang.getKhachHang().getSoDienThoai() : "N/A");
+            model.addAttribute("email", donHang.getKhachHang() != null ? donHang.getKhachHang().getEmail() : "N/A");
+            model.addAttribute("trangThai", donHang.isDatHang() ? "Đã xác nhận" : "Chưa xác nhận");
+            model.addAttribute("maKhuyenMai", donHang.getMaKhuyenMai() != null ? donHang.getMaKhuyenMai() : "Không có");
+            model.addAttribute("giamGia", "0 VNĐ");
+            model.addAttribute("phuThu", "0 VNĐ");
+            model.addAttribute("thanhTien", donHang.getTongTien().toString() + " VNĐ");
+            model.addAttribute("tongTien", donHang.getTongTien().toString() + " VNĐ");
+            model.addAttribute("tickets", tickets);
+            model.addAttribute("combos", combos);
+            model.addAttribute("comboTotal", comboTotal.toString() + " VNĐ");
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.put("error", "Lỗi khi lấy chi tiết đơn hàng: " + e.getMessage());
+            model.addAttribute("error", "Lỗi khi lấy chi tiết đơn hàng: " + e.getMessage());
         } finally {
             dbSession.close();
         }
-        return response;
+        return "admin/order_manager";
     }
 }

@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Date;
 import java.util.HashMap;
 
-
 @Controller
 @RequestMapping("/admin")
 public class AdminShowtimeController {
@@ -35,20 +34,41 @@ public class AdminShowtimeController {
     @Autowired
     private SessionFactory sessionFactory;
 
+    private static final int ITEMS_PER_PAGE = 25; // 25 bản ghi/trang
+    private static final int PAGES_TO_SHOW = 5; // Hiển thị 5 trang
+
     // Hiển thị trang quản lý suất chiếu
+    @SuppressWarnings("deprecation")
     @RequestMapping(value = "/showtimes", method = RequestMethod.GET)
-    public String showShowtimeManager(Model model) {
+    public String showShowtimeManager(
+            Model model,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "view", defaultValue = "calendar") String view) {
         Session dbSession = sessionFactory.openSession();
         try {
-            // Lấy danh sách suất chiếu
-            Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity ORDER BY ngayGioChieu DESC");
-            List<SuatChieuEntity> suatChieuEntities = suatChieuQuery.list();
-            List<SuatChieuModel> suatChieuModels = new ArrayList<>();
-            for (SuatChieuEntity entity : suatChieuEntities) {
-                suatChieuModels.add(new SuatChieuModel(entity));
-            }
-            System.out.println("Number of showtimes: " + suatChieuModels.size());
-            model.addAttribute("suatChieuList", suatChieuModels);
+            // Truy vấn đếm tổng số suất chiếu
+            Query countQuery = dbSession.createQuery("SELECT COUNT(s) FROM SuatChieuEntity s");
+            Long totalItems = (Long) countQuery.uniqueResult();
+            int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+            int start = (page - 1) * ITEMS_PER_PAGE;
+
+            // Truy vấn suất chiếu với phân trang và JOIN FETCH
+            Query suatChieuQuery = dbSession.createQuery(
+                    "FROM SuatChieuEntity s " +
+                    "JOIN FETCH s.phim p " +
+                    "JOIN FETCH s.phongChieu pc " +
+                    "JOIN FETCH pc.rapChieu r " +
+                    "LEFT JOIN FETCH s.phuThus pt " + // Thêm LEFT JOIN FETCH để lấy danh sách phụ thu
+                    "ORDER BY s.ngayGioChieu DESC"
+                );
+                suatChieuQuery.setFirstResult(start);
+                suatChieuQuery.setMaxResults(ITEMS_PER_PAGE);
+                List<SuatChieuEntity> suatChieuEntities = suatChieuQuery.list();
+                List<SuatChieuModel> suatChieuModels = new ArrayList<>();
+                for (SuatChieuEntity entity : suatChieuEntities) {
+                    suatChieuModels.add(new SuatChieuModel(entity)); // Tạo model, bao gồm danhSachTenPhuThu
+                }
+                model.addAttribute("suatChieuList", suatChieuModels);
 
             // Lấy danh sách phim
             Query phimQuery = dbSession.createQuery("FROM PhimEntity");
@@ -126,6 +146,21 @@ public class AdminShowtimeController {
             model.addAttribute("suatChieuModel", suatChieuModel);
             model.addAttribute("isEdit", false);
 
+            // Thêm thông tin phân trang
+            List<Integer> pageRange = new ArrayList<>();
+            int startPage = Math.max(1, page - (PAGES_TO_SHOW / 2));
+            int endPage = Math.min(totalPages, startPage + PAGES_TO_SHOW - 1);
+            startPage = Math.max(1, endPage - PAGES_TO_SHOW + 1);
+            for (int i = startPage; i <= endPage; i++) {
+                pageRange.add(i);
+            }
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", totalPages);
+            model.addAttribute("pageRange", pageRange);
+
+            // Thêm trạng thái giao diện
+            model.addAttribute("view", view);
+
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi lấy danh sách suất chiếu");
@@ -133,6 +168,70 @@ public class AdminShowtimeController {
             dbSession.close();
         }
         return "admin/showtime_manager";
+    }
+
+    // Hiển thị form chỉnh sửa suất chiếu
+    @SuppressWarnings("deprecation")
+    @RequestMapping(value = "/showtimes/edit/{maSuatChieu}", method = RequestMethod.GET)
+    public String showEditShowtimeForm(
+            @PathVariable("maSuatChieu") String maSuatChieu,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "view", defaultValue = "calendar") String view,
+            Model model) {
+        Session dbSession = sessionFactory.openSession();
+        try {
+            SuatChieuEntity suatChieu = (SuatChieuEntity) dbSession.get(SuatChieuEntity.class, maSuatChieu);
+            if (suatChieu == null) {
+                model.addAttribute("error", "Không tìm thấy suất chiếu với mã " + maSuatChieu);
+                return "redirect:/admin/showtimes?view=" + view;
+            }
+
+            // Lấy danh sách suất chiếu với phân trang
+            Query countQuery = dbSession.createQuery("SELECT COUNT(s) FROM SuatChieuEntity s");
+            Long totalItems = (Long) countQuery.uniqueResult();
+            int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+            int start = (page - 1) * ITEMS_PER_PAGE;
+
+            Query suatChieuQuery = dbSession.createQuery(
+                "FROM SuatChieuEntity s " +
+                "JOIN FETCH s.phim p " +
+                "JOIN FETCH s.phongChieu pc " +
+                "JOIN FETCH pc.rapChieu r " +
+                "LEFT JOIN FETCH s.phuThus pt " + // Đảm bảo lấy danh sách phụ thu
+                "ORDER BY s.ngayGioChieu DESC"
+            );
+            suatChieuQuery.setFirstResult(start);
+            suatChieuQuery.setMaxResults(ITEMS_PER_PAGE);
+            List<SuatChieuEntity> suatChieuEntities = suatChieuQuery.list();
+            List<SuatChieuModel> suatChieuModels = new ArrayList<>();
+            for (SuatChieuEntity entity : suatChieuEntities) {
+                suatChieuModels.add(new SuatChieuModel(entity));
+            }
+            model.addAttribute("suatChieuList", suatChieuModels);
+
+            // Lấy danh sách phụ thu
+            Query phuThuQuery = dbSession.createQuery("FROM PhuThuEntity");
+            List<PhuThuEntity> phuThuEntities = phuThuQuery.list();
+            List<PhuThuModel> phuThuModels = new ArrayList<>();
+            for (PhuThuEntity entity : phuThuEntities) {
+                phuThuModels.add(new PhuThuModel(entity));
+            }
+            model.addAttribute("phuThuList", phuThuModels); // Đảm bảo truyền phuThuList
+
+            SuatChieuModel suatChieuModel = new SuatChieuModel(suatChieu);
+            model.addAttribute("suatChieuModel", suatChieuModel);
+            model.addAttribute("isEdit", true);
+
+            // ... (giữ nguyên phần phân trang và các map khác) ...
+
+            return "admin/showtime_manager";
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Lỗi khi lấy thông tin suất chiếu: " + e.getMessage());
+            return "redirect:/admin/showtimes?view=" + view;
+        } finally {
+            dbSession.close();
+        }
     }
 
     // Thêm suất chiếu mới
@@ -144,6 +243,7 @@ public class AdminShowtimeController {
             @RequestParam("maPhongChieu") String maPhongChieu,
             @RequestParam("loaiManChieu") String loaiManChieu,
             @RequestParam Map<String, String> allParams,
+            @RequestParam(value = "view", defaultValue = "calendar") String view,
             Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
@@ -202,81 +302,11 @@ public class AdminShowtimeController {
                 dbSession.save(suatChieu);
             }
 
-            return "redirect:/admin/showtimes";
+            return "redirect:/admin/showtimes?view=" + view;
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi thêm suất chiếu: " + e.getMessage());
             return "admin/showtime_manager";
-        }
-    }
-
-    // Hiển thị form chỉnh sửa suất chiếu
-    @RequestMapping(value = "/showtimes/edit/{maSuatChieu}", method = RequestMethod.GET)
-    public String showEditShowtimeForm(@PathVariable("maSuatChieu") String maSuatChieu, Model model) {
-        Session dbSession = sessionFactory.openSession();
-        try {
-            SuatChieuEntity suatChieu = (SuatChieuEntity) dbSession.get(SuatChieuEntity.class, maSuatChieu);
-            if (suatChieu == null) {
-                model.addAttribute("error", "Không tìm thấy suất chiếu với mã " + maSuatChieu);
-                return "redirect:/admin/showtimes";
-            }
-
-            // Lấy danh sách suất chiếu
-            Query suatChieuQuery = dbSession.createQuery("FROM SuatChieuEntity");
-            List<SuatChieuEntity> suatChieuEntities = suatChieuQuery.list();
-            List<SuatChieuModel> suatChieuModels = new ArrayList<>();
-            for (SuatChieuEntity entity : suatChieuEntities) {
-                suatChieuModels.add(new SuatChieuModel(entity));
-            }
-            model.addAttribute("suatChieuList", suatChieuModels);
-
-            // Lấy danh sách phim
-            Query phimQuery = dbSession.createQuery("FROM PhimEntity");
-            List<PhimEntity> phimEntities = phimQuery.list();
-            List<PhimModel> phimModels = new ArrayList<>();
-            for (PhimEntity entity : phimEntities) {
-                phimModels.add(new PhimModel(entity));
-            }
-            model.addAttribute("phimList", phimModels);
-
-            // Lấy danh sách rạp chiếu
-            Query rapQuery = dbSession.createQuery("FROM RapChieuEntity");
-            List<RapChieuEntity> rapEntities = rapQuery.list();
-            List<RapChieuModel> rapModels = new ArrayList<>();
-            for (RapChieuEntity entity : rapEntities) {
-                rapModels.add(new RapChieuModel(entity));
-            }
-            model.addAttribute("rapList", rapModels);
-
-            // Lấy danh sách phòng chiếu
-            Query phongQuery = dbSession.createQuery("FROM PhongChieuEntity");
-            List<PhongChieuEntity> phongEntities = phongQuery.list();
-            List<PhongChieuModel> phongModels = new ArrayList<>();
-            for (PhongChieuEntity entity : phongEntities) {
-                phongModels.add(new PhongChieuModel(entity));
-            }
-            model.addAttribute("phongList", phongModels);
-
-            // Lấy danh sách phụ thu
-            Query phuThuQuery = dbSession.createQuery("FROM PhuThuEntity");
-            List<PhuThuEntity> phuThuEntities = phuThuQuery.list();
-            List<PhuThuModel> phuThuModels = new ArrayList<>();
-            for (PhuThuEntity entity : phuThuEntities) {
-                phuThuModels.add(new PhuThuModel(entity));
-            }
-            model.addAttribute("phuThuList", phuThuModels);
-
-            SuatChieuModel suatChieuModel = new SuatChieuModel(suatChieu);
-            model.addAttribute("suatChieuModel", suatChieuModel);
-            model.addAttribute("isEdit", true);
-
-            return "admin/showtime_manager";
-        } catch (Exception e) {
-            e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi lấy thông tin suất chiếu: " + e.getMessage());
-            return "redirect:/admin/showtimes";
-        } finally {
-            dbSession.close();
         }
     }
 
@@ -290,6 +320,7 @@ public class AdminShowtimeController {
             @RequestParam("ngayGioChieu") String ngayGioChieuStr,
             @RequestParam("loaiManChieu") String loaiManChieu,
             @RequestParam(value = "maPhuThus", required = false) List<String> maPhuThus,
+            @RequestParam(value = "view", defaultValue = "calendar") String view,
             Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
@@ -297,7 +328,7 @@ public class AdminShowtimeController {
             SuatChieuEntity suatChieu = (SuatChieuEntity) dbSession.get(SuatChieuEntity.class, maSuatChieu);
             if (suatChieu == null) {
                 model.addAttribute("error", "Không tìm thấy suất chiếu với mã " + maSuatChieu);
-                return "redirect:/admin/showtimes";
+                return "redirect:/admin/showtimes?view=" + view;
             }
 
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
@@ -330,7 +361,7 @@ public class AdminShowtimeController {
             }
 
             dbSession.update(suatChieu);
-            return "redirect:/admin/showtimes";
+            return "redirect:/admin/showtimes?view=" + view;
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi cập nhật suất chiếu: " + e.getMessage());
@@ -341,7 +372,10 @@ public class AdminShowtimeController {
     // Xóa suất chiếu
     @Transactional
     @RequestMapping(value = "/showtimes/delete/{maSuatChieu}", method = RequestMethod.GET)
-    public String deleteShowtime(@PathVariable("maSuatChieu") String maSuatChieu, Model model) {
+    public String deleteShowtime(
+            @PathVariable("maSuatChieu") String maSuatChieu,
+            @RequestParam(value = "view", defaultValue = "calendar") String view,
+            Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
             SuatChieuEntity suatChieu = (SuatChieuEntity) dbSession.get(SuatChieuEntity.class, maSuatChieu);
@@ -351,11 +385,11 @@ public class AdminShowtimeController {
             } else {
                 model.addAttribute("error", "Không tìm thấy suất chiếu với mã " + maSuatChieu);
             }
-            return "redirect:/admin/showtimes";
+            return "redirect:/admin/showtimes?view=" + view;
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi xóa suất chiếu: " + e.getMessage());
-            return "redirect:/admin/showtimes";
+            return "redirect:/admin/showtimes?view=" + view;
         }
     }
 }

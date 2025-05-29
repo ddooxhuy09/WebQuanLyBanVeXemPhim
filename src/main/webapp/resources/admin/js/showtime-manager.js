@@ -74,7 +74,8 @@ function filterShowtimes() {
         }
     }
 
-    return showtimes.filter(function(showtime) {
+    var filtered = showtimes.filter(function(showtime) {
+        console.log('Filtering showtime:', showtime); // Debug mỗi suất chiếu
         if (!showtime || !showtime.ngayGioChieu || !(showtime.ngayGioChieu instanceof Date)) {
             console.warn("Invalid showtime object found:", showtime);
             return false;
@@ -101,6 +102,8 @@ function filterShowtimes() {
 
         return true;
     });
+    console.log('Filtered showtimes:', filtered); // Debug kết quả lọc
+    return filtered;
 }
 
 function applyFilterAndRender() {
@@ -120,17 +123,29 @@ function applyFilterAndRender() {
 }
 
 function toggleShowtimeView() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = urlParams.get('page') || '1';
+    
     if (calendarView.style.display !== 'none') {
+        // Chuyển sang dạng bảng
         calendarView.style.display = 'none';
         tableView.style.display = 'block';
         toggleBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> Chuyển Sang Dạng Lịch';
         renderTableView();
+        // Cập nhật URL
+        urlParams.set('view', 'table');
     } else {
+        // Chuyển sang dạng lịch
         tableView.style.display = 'none';
         calendarView.style.display = 'block';
         toggleBtn.innerHTML = '<i class="fas fa-list"></i> Chuyển Sang Dạng Bảng';
         applyFilterAndRender();
+        // Cập nhật URL
+        urlParams.set('view', 'calendar');
     }
+
+    // Cập nhật URL mà không tải lại trang
+    window.history.replaceState({}, '', `${window.location.pathname}?${urlParams.toString()}`);
 }
 
 function renderCalendar() {
@@ -307,7 +322,7 @@ function createAndAppendEventDiv(showtime, trueStartDate, trueEndDate, topPos, h
 
     eventDiv.onclick = function(e) {
         e.stopPropagation();
-        showEditModal(showtime.maSuat);
+        handleEditClick(showtime.maSuat);
     };
 
     targetCell.appendChild(eventDiv);
@@ -325,15 +340,17 @@ function nextWeek() {
 
 function renderTableView() {
     var filteredData = filterShowtimes();
-    console.log("Filtered showtimes:", filteredData); // Thêm log để debug
+    console.log('filteredData trong renderTableView:', filteredData);
     showtimeTableBody.innerHTML = '';
     var dataRows = showtimeTableBody.querySelectorAll('tr:not(.no-data-row)');
+    console.log('dataRows trước khi xóa:', dataRows.length);
     for (var i = 0; i < dataRows.length; i++) {
         dataRows[i].remove();
     }
 
     if (filteredData.length === 0) {
         noDataRow.style.display = 'table-row';
+        console.log('Không có dữ liệu, hiển thị noDataRow');
         return;
     }
 
@@ -341,6 +358,7 @@ function renderTableView() {
 
     for (var j = 0; j < filteredData.length; j++) {
         var showtime = filteredData[j];
+        console.log('Render hàng cho showtime:', showtime.maSuat);
         var row = document.createElement('tr');
         row.setAttribute('data-showtime-id', showtime.maSuat);
 
@@ -352,17 +370,42 @@ function renderTableView() {
             '<td>' + formatTableDateTime(showtime.ngayGioChieu) + '</td>' +
             '<td>' + formatTableDateTime(showtime.ngayGioKetThuc) + '</td>' +
             '<td>' + (showtime.loaiManChieu || 'N/A') + '</td>' +
-            '<td>' + (showtime.tenPhuThu || 'Không') + '</td>' +
+            '<td>' + (showtime.tenPhuThu || 'Không có') + '</td>' +
             '<td>' +
-                '<button class="custom-btn btn-sm mr-1 btn-edit" onclick="handleEditClick(\'' + showtime.maSuat + '\')">' +
+                '<button class="custom-btn btn-sm mr-1 btn-edit" data-ma-suat="' + showtime.maSuat + '">' +
                     '<i class="fas fa-edit"></i> Sửa' +
                 '</button>' +
-                '<button class="custom-btn btn-sm btn-danger btn-delete" onclick="handleDeleteClick(\'' + showtime.maSuat + '\')">' +
+                '<button class="custom-btn btn-sm btn-danger btn-delete" data-ma-suat="' + showtime.maSuat + '">' +
                     '<i class="fas fa-trash"></i> Xóa' +
                 '</button>' +
             '</td>';
         showtimeTableBody.appendChild(row);
     }
+    console.log('Đã render bảng, số hàng:', showtimeTableBody.querySelectorAll('tr:not(.no-data-row)').length);
+
+    // Gắn lại sự kiện cho các nút "Sửa"
+    const editButtons = document.querySelectorAll('.btn-edit');
+    console.log('Số lượng nút chỉnh sửa sau render:', editButtons.length);
+    editButtons.forEach(button => {
+        console.log('Gắn sự kiện cho nút chỉnh sửa với data-ma-suat:', button.getAttribute('data-ma-suat'));
+        button.addEventListener('click', function () {
+            const maSuat = this.getAttribute('data-ma-suat');
+            console.log('Nút chỉnh sửa được click sau render, maSuat:', maSuat);
+            handleEditClick(maSuat);
+        });
+    });
+
+    // Gắn lại sự kiện cho các nút "Xóa"
+    const deleteButtons = document.querySelectorAll('.btn-delete');
+    console.log('Số lượng nút xóa sau render:', deleteButtons.length);
+    deleteButtons.forEach(button => {
+        console.log('Gắn sự kiện cho nút xóa với data-ma-suat:', button.getAttribute('data-ma-suat'));
+        button.addEventListener('click', function () {
+            const maSuat = this.getAttribute('data-ma-suat');
+            console.log('Nút xóa được click sau render, maSuat:', maSuat);
+            handleDeleteClick(maSuat);
+        });
+    });
 }
 
 function removeTag(element) {
@@ -649,50 +692,84 @@ function prepareAndSubmitAddForm() {
 }
 
 function handleEditClick(maSuat) {
-    var showtimeToEdit = null;
-    for (var i = 0; i < showtimes.length; i++) {
-        if (showtimes[i].maSuat === maSuat) {
-            showtimeToEdit = showtimes[i];
-            break;
-        }
-    }
-    
-    if (showtimeToEdit) {
-        showEditModal(maSuat);
-    } else {
-        alert('Không tìm thấy thông tin suất chiếu để sửa.');
-    }
-}
-
-function showEditModal(maSuat) {
-    var showtime = null;
-    for (var i = 0; i < showtimes.length; i++) {
-        if (showtimes[i].maSuat === maSuat) {
-            showtime = showtimes[i];
-            break;
-        }
-    }
-    
-    if (!showtime) { 
-        alert('Không tìm thấy suất chiếu!'); 
-        return; 
+    console.log('handleEditClick được gọi với maSuat:', maSuat); // Debug mã suất
+    const showtime = serverData.find(s => s.maSuat === maSuat);
+    console.log('showtime tìm thấy:', showtime); // Debug dữ liệu suất chiếu
+    if (!showtime) {
+        console.error("Không tìm thấy suất chiếu với mã: " + maSuat);
+        alert("Không tìm thấy suất chiếu với mã: " + maSuat);
+        return;
     }
 
-    var form = document.getElementById('editShowtimeForm');
-    form.reset();
+    const form = document.getElementById('editShowtimeForm');
+    console.log('editShowtimeForm:', form); // Debug form
+    if (!form) {
+        console.error("editShowtimeForm not found!");
+        return;
+    }
 
-    document.getElementById('editMaSuatHidden').value = showtime.maSuat;
-    document.getElementById('editMaSuatDisplay').value = showtime.maSuat;
-    document.getElementById('editPhim').value = showtime.maPhim;
-    document.getElementById('editRapChieu').value = showtime.maRap;
+    const editMaSuatHidden = document.getElementById('editMaSuatHidden');
+    const editMaSuatDisplay = document.getElementById('editMaSuatDisplay');
+    const editPhim = document.getElementById('editPhim');
+    const editRapChieu = document.getElementById('editRapChieu');
+    const editPhongChieu = document.getElementById('editPhongChieu');
+    const editNgayGioChieu = document.getElementById('editNgayGioChieu');
+    const editLoaiManChieu = document.getElementById('editLoaiManChieu');
+    const editPhuThuContainer = document.getElementById('editPhuThuContainer');
+    const editThoiLuong = document.getElementById('editThoiLuong');
+
+    console.log('editModal:', editModal); // Debug modal
+    console.log('editMaSuatHidden:', editMaSuatHidden); // Debug các phần tử
+    console.log('editPhim:', editPhim);
+    console.log('editRapChieu:', editRapChieu);
+    console.log('editPhongChieu:', editPhongChieu);
+    console.log('editNgayGioChieu:', editNgayGioChieu);
+    console.log('editLoaiManChieu:', editLoaiManChieu);
+    console.log('editPhuThuContainer:', editPhuThuContainer);
+    console.log('editThoiLuong:', editThoiLuong);
+
+    if (!editMaSuatHidden || !editMaSuatDisplay || !editPhim || !editRapChieu || 
+        !editPhongChieu || !editNgayGioChieu || !editLoaiManChieu || !editPhuThuContainer || !editThoiLuong) {
+        console.error("Một hoặc nhiều phần tử trong editModal không được tìm thấy!");
+        return;
+    }
+
+    editMaSuatHidden.value = showtime.maSuat;
+    editMaSuatDisplay.value = showtime.maSuat;
+    editPhim.value = showtime.maPhim;
+    editThoiLuong.value = phimMap[showtime.maPhim].thoiLuong;
+    editRapChieu.value = showtime.maRap;
     filterEditPhongChieu();
-    document.getElementById('editPhongChieu').value = showtime.maPhong;
-    document.getElementById('editNgayGioChieu').value = formatDateTimeLocal(showtime.ngayGioChieu);
-    document.getElementById('editLoaiManChieu').value = showtime.loaiManChieu;
-    document.getElementById('editPhuThu').value = showtime.maPhuThu || "";
+    editPhongChieu.value = showtime.maPhong;
+    editNgayGioChieu.value = formatDateTimeLocal(showtime.ngayGioChieu);
+    editLoaiManChieu.value = showtime.loaiManChieu;
+
+    console.log('Điền giá trị modal:', {
+        maSuat: showtime.maSuat,
+        maPhim: showtime.maPhim,
+        thoiLuong: phimMap[showtime.maPhim].thoiLuong,
+        maRap: showtime.maRap,
+        maPhong: showtime.maPhong,
+        ngayGioChieu: formatDateTimeLocal(showtime.ngayGioChieu),
+        loaiManChieu: showtime.loaiManChieu
+    }); // Debug giá trị điền vào modal
+
+    editPhuThuContainer.innerHTML = '';
+    const phuThuArray = showtime.tenPhuThu.split(', ').filter(t => t !== 'Không có');
+    console.log('phuThuArray:', phuThuArray); // Debug danh sách phụ thu
+    phuThuArray.forEach(phuThuName => {
+        const phuThu = phuThuList.find(p => p.tenPhuThu === phuThuName);
+        console.log('Tìm phuThu:', phuThuName, phuThu); // Debug phụ thu
+        if (phuThu) {
+            addEditPhuThuTagFromData(phuThu.maPhuThu, phuThu.tenPhuThu);
+        }
+    });
 
     updateEditThoiLuongAndEndTime();
+    console.log('Hiển thị modal, editModal.style.display:', editModal.style.display); // Debug trước khi hiển thị
     editModal.style.display = 'flex';
+    console.log('Modal đã được hiển thị, editModal.style.display:', editModal.style.display); // Debug sau khi hiển thị
+    console.log('Computed style display:', window.getComputedStyle(editModal).display); // Debug style thực tế
 }
 
 function filterEditPhongChieu() {
@@ -759,27 +836,105 @@ function prepareAndSubmitEditForm() {
 }
 
 function handleDeleteClick(maSuat) {
-    var showtimeToDelete = null;
-    for (var i = 0; i < showtimes.length; i++) {
-        if (showtimes[i].maSuat === maSuat) {
-            showtimeToDelete = showtimes[i];
-            break;
-        }
+    console.log('handleDeleteClick started with maSuat:', maSuat);
+    if (!maSuat) {
+        console.error('maSuat is undefined or null');
+        alert('Lỗi: Mã suất chiếu không hợp lệ.');
+        return;
     }
-    
+
+    var showtimeToDelete = showtimes.find(s => s.maSuat === maSuat);
+    console.log('showtimeToDelete:', showtimeToDelete);
     var confirmMsg = showtimeToDelete
         ? 'Bạn có chắc muốn xóa suất chiếu "' + (showtimeToDelete.tenPhim || 'N/A') + '" (' + maSuat + ') lúc ' + 
           formatTableDateTime(showtimeToDelete.ngayGioChieu) + ' không?'
         : 'Bạn có chắc muốn xóa suất chiếu "' + maSuat + '" không?';
+    console.log('Confirm message:', confirmMsg);
 
     if (confirm(confirmMsg + "\nHành động này không thể hoàn tác.")) {
-        deleteMaSuatHidden.value = maSuat;
-        deleteForm.action = contextPath + '/admin/showtimes/delete/' + maSuat;
-        deleteForm.submit();
+        if (!contextPath) {
+            console.error('contextPath is undefined');
+            alert('Lỗi: contextPath không được định nghĩa.');
+            return;
+        }
+        console.log('contextPath:', contextPath);
+        const viewMode = tableView.style.display === 'none' ? 'calendar' : 'table';
+        const deleteUrl = contextPath + '/admin/showtimes/delete/' + maSuat + '?view=' + viewMode;
+        console.log('Redirecting to:', deleteUrl);
+        try {
+            window.location.href = deleteUrl;
+            console.log('GET request initiated');
+        } catch (e) {
+            console.error('Error sending GET request:', e);
+            alert('Lỗi khi gửi yêu cầu xóa.');
+        }
+    } else {
+        console.log('Xóa bị hủy bởi người dùng');
     }
 }
 
+function addEditPhuThuTag() {
+    const select = document.getElementById('editPhuThuSelect');
+    const container = document.getElementById('editPhuThuContainer');
+    const hiddenInput = document.getElementById('editPhuThuHidden');
+    const selectedValue = select.value;
+
+    if (selectedValue && !Array.from(container.children).some(tag => tag.dataset.value === selectedValue)) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.dataset.value = selectedValue;
+        tag.textContent = select.options[select.selectedIndex].text;
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'close-btn';
+        closeBtn.textContent = '×';
+        closeBtn.onclick = () => {
+            container.removeChild(tag);
+            updateEditPhuThuHidden();
+        };
+        tag.appendChild(closeBtn);
+        container.appendChild(tag);
+        select.value = ''; // Reset select
+        updateEditPhuThuHidden();
+    }
+}
+
+function updateEditPhuThuHidden() {
+    const container = document.getElementById('editPhuThuContainer');
+    const hiddenInput = document.getElementById('editPhuThuHidden');
+    const tags = Array.from(container.children).map(tag => tag.dataset.value);
+    hiddenInput.value = tags.join(',');
+}
+
+function addEditPhuThuTagFromData(maPhuThu, tenPhuThu) {
+    const container = document.getElementById('editPhuThuContainer');
+    if (!Array.from(container.children).some(tag => tag.dataset.value === maPhuThu)) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.dataset.value = maPhuThu;
+        tag.textContent = tenPhuThu;
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'close-btn';
+        closeBtn.textContent = '×';
+        closeBtn.onclick = () => {
+            container.removeChild(tag);
+            updateEditPhuThuHidden();
+        };
+        tag.appendChild(closeBtn);
+        container.appendChild(tag);
+        updateEditPhuThuHidden();
+    }
+}
+
+function navigateToPage(page) {
+    const viewMode = tableView.style.display !== 'none' ? 'table' : 'calendar';
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('page', page);
+    urlParams.set('view', viewMode);
+    window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    // Khởi tạo các phần tử
     calendarView = document.getElementById('calendarView');
     tableView = document.getElementById('tableView');
     toggleBtn = document.getElementById('toggleViewBtn');
@@ -797,8 +952,29 @@ document.addEventListener('DOMContentLoaded', function () {
     deleteForm = document.getElementById('deleteShowtimeForm');
     deleteMaSuatHidden = document.getElementById('deleteMaSuatHidden');
 
+    if (!editModal) {
+        console.error("editModal not found in DOM!");
+        return;
+    }
+
+    // Lấy tham số view từ URL
+    const urlParams = new URLSearchParams(window.location.search);
+	const viewMode = urlParams.get('view') || 'calendar';
+	if (viewMode === 'table') {
+	    calendarView.style.display = 'none';
+	    tableView.style.display = 'block';
+	    toggleBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> Chuyển Sang Dạng Lịch';
+	    renderTableView();
+	} else {
+	    calendarView.style.display = 'block';
+	    tableView.style.display = 'none';
+	    toggleBtn.innerHTML = '<i class="fas fa-list"></i> Chuyển Sang Dạng Bảng';
+	    applyFilterAndRender();
+	}
+
+    // Khởi tạo showtimes từ serverData
     try {
-        console.log("serverData:", serverData); // Thêm log để debug
+        console.log("serverData:", serverData);
         if (typeof serverData !== 'undefined' && serverData instanceof Array) {
             showtimes = [];
             for (var i = 0; i < serverData.length; i++) {
@@ -828,7 +1004,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             showtimes = validShowtimes;
-            
             console.log("Initialized showtimes from server data:", showtimes.length);
         } else {
             console.warn("Server data not found or invalid. Initializing empty showtimes array.");
@@ -839,12 +1014,31 @@ document.addEventListener('DOMContentLoaded', function () {
         showtimes = [];
     }
 
-    tableView.style.display = 'none';
-    calendarView.style.display = 'block';
-    toggleBtn.innerHTML = '<i class="fas fa-list"></i> Chuyển Sang Dạng Bảng';
+    // Gắn sự kiện cho các nút "Sửa"
+    const editButtons = document.querySelectorAll('.btn-edit');
+    console.log('Số lượng nút chỉnh sửa tìm thấy:', editButtons.length);
+    editButtons.forEach(button => {
+        console.log('Gắn sự kiện cho nút chỉnh sửa với data-ma-suat:', button.getAttribute('data-ma-suat'));
+        button.addEventListener('click', function () {
+            const maSuat = this.getAttribute('data-ma-suat');
+            console.log('Nút chỉnh sửa được click, maSuat:', maSuat);
+            handleEditClick(maSuat);
+        });
+    });
 
-    applyFilterAndRender();
+    // Gắn sự kiện cho các nút "Xóa"
+    const deleteButtons = document.querySelectorAll('.btn-delete');
+    console.log('Số lượng nút xóa tìm thấy:', deleteButtons.length);
+    deleteButtons.forEach(button => {
+        console.log('Gắn sự kiện cho nút xóa với data-ma-suat:', button.getAttribute('data-ma-suat'));
+        button.addEventListener('click', function () {
+            const maSuat = this.getAttribute('data-ma-suat');
+            console.log('Nút xóa được click, maSuat:', maSuat);
+            handleDeleteClick(maSuat);
+        });
+    });
 
+    // Gắn sự kiện cho các bộ lọc
     var filterStatus = document.getElementById('filterStatus');
     if (filterStatus) filterStatus.onchange = applyFilterAndRender;
     

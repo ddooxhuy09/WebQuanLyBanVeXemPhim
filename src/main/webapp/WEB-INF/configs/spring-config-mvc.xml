@@ -35,6 +35,13 @@
     <bean id="tilesViewResolver" class="org.springframework.web.servlet.view.tiles3.TilesViewResolver">
         <property name="order" value="0" />
     </bean>
+    
+    <!-- Upload hình -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- maxUploadSize=5MB -->
+		<property name="maxUploadSize" value="5242880" />
+	</bean>
 
     <!-- View Resolver để ánh xạ JSP -->
     <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">

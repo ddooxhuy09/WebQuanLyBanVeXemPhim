@@ -791,7 +791,7 @@ public class BookingController {
                 vnp_Params.put("vnp_CurrCode", VNPayConfig.vnp_CurrCode);
                 vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
                 vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
-                vnp_Params.put("vnp_OrderType", "250000");
+                vnp_Params.put("vnp_OrderType", "250000");	
                 vnp_Params.put("vnp_Locale", VNPayConfig.vnp_Locale);
                 String returnUrl = VNPayConfig.getReturnUrl(request);
                 vnp_Params.put("vnp_ReturnUrl", returnUrl);

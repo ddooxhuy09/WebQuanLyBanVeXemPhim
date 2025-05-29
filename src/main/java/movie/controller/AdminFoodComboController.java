@@ -80,6 +80,7 @@ public class AdminFoodComboController {
                 List<ChiTietComboModel> chiTietList = new ArrayList<>();
                 for (ChiTietComboEntity ctEntity : entity.getChiTietCombos()) {
                     ChiTietComboModel ctModel = new ChiTietComboModel();
+                    ctModel.setMaCombo(entity.getMaCombo());
                     ctModel.setMaBapNuoc(ctEntity.getMaBapNuoc());
                     ctModel.setSoLuong(ctEntity.getSoLuong());
                     chiTietList.add(ctModel);
@@ -117,9 +118,7 @@ public class AdminFoodComboController {
 
                         List<ChiTietComboModel> chiTietList = new ArrayList<>();
                         for (ChiTietComboEntity ctEntity : combo.getChiTietCombos()) {
-                            ChiTietComboModel ctModel = new ChiTietComboModel();
-                            ctModel.setMaBapNuoc(ctEntity.getMaBapNuoc());
-                            ctModel.setSoLuong(ctEntity.getSoLuong());
+                            ChiTietComboModel ctModel = new ChiTietComboModel(ctEntity);
                             chiTietList.add(ctModel);
                         }
                         comboModel.setChiTietCombos(chiTietList);
@@ -238,8 +237,8 @@ public class AdminFoodComboController {
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public String addItem(
             @RequestParam("loai") String loai,
-            @RequestParam("ten") String ten,
-            @RequestParam("gia") String giaStr,
+            @RequestParam(value = "ten", required = false) String ten,
+            @RequestParam(value = "gia", required = false) String giaStr,
             @RequestParam(value = "moTa", required = false) String moTa,
             @RequestParam("hinhAnh") MultipartFile hinhAnhFile,
             @RequestParam(value = "bapNuocHidden", required = false) String bapNuocHidden,
@@ -256,21 +255,25 @@ public class AdminFoodComboController {
             if (ten == null || ten.trim().isEmpty()) {
                 errors.add("Tên không được để trống.");
             } else if (checkDuplicateTen(ten.trim(), loai, null, dbSession)) {
-                errors.add("Tên " + ten + " đã tồn tại.");
+                errors.add("Tên " + ten.trim() + " đã tồn tại trong hệ thống.");
             }
 
             // Validate giá
             if (giaStr == null || giaStr.trim().isEmpty()) {
                 errors.add("Giá không được để trống.");
             } else {
-                try {
-                    String cleanedGia = giaStr.replaceAll("[^0-9.]", "");
-                    gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
-                    if (gia.compareTo(BigDecimal.ZERO) <= 0) {
-                        errors.add("Giá phải là số dương.");
+                if (!giaStr.matches("^\\d*\\.?\\d*$")) {
+                    errors.add("Giá phải là số hợp lệ (ví dụ: 50000 hoặc 50000.00).");
+                } else {
+                    try {
+                        String cleanedGia = giaStr.replaceAll("[^0-9.]", "");
+                        gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        if (gia.compareTo(BigDecimal.ZERO) <= 0) {
+                            errors.add("Giá phải là số dương.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errors.add("Giá không đúng định dạng số.");
                     }
-                } catch (NumberFormatException e) {
-                    errors.add("Giá không đúng định dạng số.");
                 }
             }
 
@@ -283,7 +286,7 @@ public class AdminFoodComboController {
                     for (String pair : bapNuocPairs) {
                         String[] parts = pair.split(":");
                         if (parts.length != 2) {
-                            errors.add("Dữ liệu bắp nước không hợp lệ.");
+                            errors.add("Dữ liệu bắp nước không hợp lệ: " + pair);
                             break;
                         }
                         String maBapNuoc = parts[0].trim();
@@ -291,16 +294,16 @@ public class AdminFoodComboController {
                         try {
                             soLuong = Integer.parseInt(parts[1].trim());
                             if (soLuong <= 0) {
-                                errors.add("Số lượng bắp nước phải là số dương.");
+                                errors.add("Số lượng bắp nước phải là số dương cho mã " + maBapNuoc + ".");
                                 break;
                             }
                         } catch (NumberFormatException e) {
-                            errors.add("Số lượng bắp nước không hợp lệ.");
+                            errors.add("Số lượng bắp nước không hợp lệ cho mã " + maBapNuoc + ".");
                             break;
                         }
                         BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, maBapNuoc);
                         if (bapNuoc == null) {
-                            errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại.");
+                            errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại trong hệ thống.");
                             break;
                         }
                         bapNuocIds.add(maBapNuoc);
@@ -356,7 +359,6 @@ public class AdminFoodComboController {
                 logger.info("Saved ComboEntity: " + ma + " with " + chiTietCombos.size() + " ChiTietComboEntity");
             }
 
-            // Sau khi thêm thành công, redirect để tải lại dữ liệu
             model.addAttribute("success", "Thêm " + loai + " thành công!");
             return "redirect:/admin/food-combo";
 
@@ -378,10 +380,10 @@ public class AdminFoodComboController {
     @Transactional
     @RequestMapping(value = "/edit", method = RequestMethod.POST)
     public String editItem(
-            @RequestParam("loai") String loai,
-            @RequestParam("ma") String ma,
-            @RequestParam("ten") String ten,
-            @RequestParam("gia") String giaStr,
+            @RequestParam(value = "loai", required = false) String loai,
+            @RequestParam(value = "ma", required = false) String ma,
+            @RequestParam(value = "ten", required = false) String ten,
+            @RequestParam(value = "gia", required = false) String giaStr,
             @RequestParam(value = "moTa", required = false) String moTa,
             @RequestParam("hinhAnh") MultipartFile hinhAnhFile,
             @RequestParam(value = "bapNuocHidden", required = false) String bapNuocHidden,
@@ -392,27 +394,48 @@ public class AdminFoodComboController {
         BigDecimal gia = null;
         List<String> bapNuocIds = new ArrayList<>();
         List<Integer> soLuongs = new ArrayList<>();
-        
+
+        // Infer loai and ma if not provided
+        if (loai == null || loai.trim().isEmpty() || ma == null || ma.trim().isEmpty()) {
+            Object editItem = model.asMap().get("editItem");
+            if (editItem instanceof BapNuocModel) {
+                loai = "Bắp Nước";
+                ma = ((BapNuocModel) editItem).getMaBapNuoc();
+            } else if (editItem instanceof ComboModel) {
+                loai = "Combo";
+                ma = ((ComboModel) editItem).getMaCombo();
+            }
+            if (ma == null || loai == null) {
+                model.addAttribute("error", "Không thể xác định mã hoặc loại của mục cần chỉnh sửa.");
+                return showFoodComboManager(null, null, model, request);
+            }
+            logger.info("Inferred loai: " + loai + ", ma: " + ma);
+        }
+
         try {
             // Validate tên
             if (ten == null || ten.trim().isEmpty()) {
                 errors.add("Tên không được để trống.");
             } else if (checkDuplicateTen(ten.trim(), loai, ma, dbSession)) {
-                errors.add("Tên " + ten + " đã tồn tại.");
+                errors.add("Tên " + ten.trim() + " đã tồn tại trong hệ thống.");
             }
 
             // Validate giá
             if (giaStr == null || giaStr.trim().isEmpty()) {
                 errors.add("Giá không được để trống.");
             } else {
-                try {
-                    String cleanedGia = giaStr.replaceAll("[^0-9.]", "");
-                    gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
-                    if (gia.compareTo(BigDecimal.ZERO) <= 0) {
-                        errors.add("Giá phải là số dương.");
+                if (!giaStr.matches("^\\d*\\.?\\d*$")) {
+                    errors.add("Giá phải là số hợp lệ (ví dụ: 50000 hoặc 50000.00).");
+                } else {
+                    try {
+                        String cleanedGia = giaStr.replaceAll("[^0-9.]", "");
+                        gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        if (gia.compareTo(BigDecimal.ZERO) <= 0) {
+                            errors.add("Giá phải là số dương.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errors.add("Giá không đúng định dạng số.");
                     }
-                } catch (NumberFormatException e) {
-                    errors.add("Giá không đúng định dạng số.");
                 }
             }
 
@@ -425,7 +448,7 @@ public class AdminFoodComboController {
                     for (String pair : bapNuocPairs) {
                         String[] parts = pair.split(":");
                         if (parts.length != 2) {
-                            errors.add("Dữ liệu bắp nước không hợp lệ.");
+                            errors.add("Dữ liệu bắp nước không hợp lệ: " + pair);
                             break;
                         }
                         String maBapNuoc = parts[0].trim();
@@ -433,16 +456,16 @@ public class AdminFoodComboController {
                         try {
                             soLuong = Integer.parseInt(parts[1].trim());
                             if (soLuong <= 0) {
-                                errors.add("Số lượng bắp nước phải là số dương.");
+                                errors.add("Số lượng bắp nước phải là số dương cho mã " + maBapNuoc + ".");
                                 break;
                             }
                         } catch (NumberFormatException e) {
-                            errors.add("Số lượng bắp nước không hợp lệ.");
+                            errors.add("Số lượng bắp nước không hợp lệ cho mã " + maBapNuoc + ".");
                             break;
                         }
                         BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, maBapNuoc);
                         if (bapNuoc == null) {
-                            errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại.");
+                            errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại trong hệ thống.");
                             break;
                         }
                         bapNuocIds.add(maBapNuoc);
@@ -529,7 +552,6 @@ public class AdminFoodComboController {
                 logger.info("Updated ComboEntity: " + ma + " with " + chiTietCombos.size() + " ChiTietComboEntity");
             }
 
-            // Sau khi lưu thành công, redirect để tải lại dữ liệu
             model.addAttribute("success", "Cập nhật " + loai + " thành công!");
             return "redirect:/admin/food-combo";
 
@@ -577,7 +599,6 @@ public class AdminFoodComboController {
             Session dbSession = sessionFactory.getCurrentSession();
 
             if ("Bắp Nước".equals(loai)) {
-                // Kiểm tra xem MaBapNuoc có trong ChiTietDonHangBapNuoc không
                 Query checkQuery = dbSession.createQuery(
                     "SELECT COUNT(*) FROM ChiTietDonHangBapNuocEntity WHERE maBapNuoc = :maBapNuoc"
                 );
@@ -597,7 +618,6 @@ public class AdminFoodComboController {
                     model.addAttribute("error", "Không tìm thấy bắp nước với mã " + ma);
                 }
             } else if ("Combo".equals(loai)) {
-                // Kiểm tra xem MaCombo có trong ChiTietDonHangCombo không
                 Query checkQuery = dbSession.createQuery(
                     "SELECT COUNT(*) FROM ChiTietDonHangComboEntity WHERE maCombo = :maCombo"
                 );
@@ -611,9 +631,8 @@ public class AdminFoodComboController {
 
                 ComboEntity combo = (ComboEntity) dbSession.get(ComboEntity.class, ma);
                 if (combo != null) {
-                    // Xóa các chi tiết combo liên quan trước
-                    combo.getChiTietCombos().clear(); // This should trigger cascade delete if configured
-                    dbSession.flush(); // Đảm bảo xóa chi tiết trước khi xóa combo
+                    combo.getChiTietCombos().clear();
+                    dbSession.flush();
                     dbSession.delete(combo);
                     logger.info("Deleted ComboEntity: " + ma + " with associated ChiTietComboEntity records");
                 } else {

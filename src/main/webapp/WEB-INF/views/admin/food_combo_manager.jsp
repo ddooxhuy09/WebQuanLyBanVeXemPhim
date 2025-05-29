@@ -79,17 +79,17 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="editMa">Mã</label>
-                        <input type="text" class="form-control" id="editMa" value="${fn:escapeXml(editItem.maBapNuoc != null ? editItem.maBapNuoc : editItem.maCombo)}" readonly>
-                        <input type="hidden" name="ma" value="${fn:escapeXml(editItem.maBapNuoc != null ? editItem.maBapNuoc : editItem.maCombo)}">
-                        <input type="hidden" name="loai" value="${editLoai}">
+                        <input type="text" class="form-control" id="editMa" value="${fn:escapeXml(editLoai == 'Bắp Nước' ? editItem.maBapNuoc : editItem.maCombo)}" readonly>
+                        <input type="hidden" name="ma" value="${fn:escapeXml(editLoai == 'Bắp Nước' ? editItem.maBapNuoc : editItem.maCombo)}">
+                        <input type="hidden" name="loai" value="${fn:escapeXml(editLoai)}">
                     </div>
                     <div class="form-group">
                         <label for="editTen">Tên</label>
-                        <input type="text" class="form-control" id="editTen" name="ten" value="${fn:escapeXml(editItem.tenBapNuoc != null ? editItem.tenBapNuoc : editItem.tenCombo)}" required>
+                        <input type="text" class="form-control" id="editTen" name="ten" value="${fn:escapeXml(editLoai == 'Bắp Nước' ? editItem.tenBapNuoc : editItem.tenCombo)}" required>
                     </div>
                     <div class="form-group">
                         <label for="editGia">Giá (VNĐ)</label>
-                        <input type="text" class="form-control" id="editGia" name="gia" value="<fmt:formatNumber value='${editItem.giaBapNuoc != null ? editItem.giaBapNuoc : editItem.giaCombo}' type='number' groupingUsed='true' minFractionDigits='0' maxFractionDigits='0'/>" required>
+                        <input type="text" class="form-control" id="editGia" name="gia" value="<fmt:formatNumber value='${editLoai == "Bắp Nước" ? editItem.giaBapNuoc : editItem.giaCombo}' type='number' groupingUsed='true' minFractionDigits='0' maxFractionDigits='0'/>" required>
                     </div>
                     <input type="hidden" id="editBapNuocHidden" name="bapNuocHidden">
                 </div>
@@ -253,9 +253,13 @@
 <script src="${pageContext.request.contextPath}/resources/admin/js/number-utils.js"></script>
 <script src="${pageContext.request.contextPath}/resources/admin/js/currency-utils.js"></script>
 <script>
+function isValidNumber(value) {
+    return /^\d*\.?\d*$/.test(value.replace(/[^0-9.]/g, ''));
+}
+
 function validateFile(input) {
-    if (!input) {
-        console.error('validateFile: Input is null');
+    if (!input || !input.files) {
+        alert('Không thể truy cập file hình ảnh!');
         return false;
     }
     const file = input.files[0];
@@ -284,8 +288,6 @@ function toggleAddFields() {
             cb.checked = false;
         });
     }
-
-    // Cập nhật mã dựa trên loại
     const newMaMap = {
         "Bắp Nước": "${fn:escapeXml(newMaMap['Bắp Nước'])}",
         "Combo": "${fn:escapeXml(newMaMap['Combo'])}"
@@ -318,8 +320,17 @@ function validateAddForm(form) {
     const hinhAnh = form.querySelector('#addHinhAnh').files[0];
     const bapNuocHidden = form.querySelector('#bapNuocHidden').value.trim();
 
+    console.log("Add Form - Gia value: ", gia); // Debug log
+    console.log("Add Form - All form data: ", new FormData(form)); // Debug log
+
     if (!ten) errors.push("Tên không được để trống.");
-    if (!gia || parseFloat(gia.replace(/[^0-9.]/g, '')) <= 0) errors.push("Giá phải là số dương.");
+    if (!gia) {
+        errors.push("Giá không được để trống.");
+    } else if (!isValidNumber(gia)) {
+        errors.push("Giá phải là số hợp lệ (ví dụ: 50000 hoặc 50000.00).");
+    } else if (parseFloat(gia.replace(/[^0-9.]/g, '')) <= 0) {
+        errors.push("Giá phải là số dương.");
+    }
     if (!hinhAnh) errors.push("Hình ảnh không được để trống.");
     if (loai === 'Combo' && !bapNuocHidden) errors.push("Danh sách bắp nước không được để trống.");
 
@@ -332,13 +343,33 @@ function validateAddForm(form) {
 
 function validateEditForm(form) {
     const errors = [];
-    const loai = form.querySelector('input[name="loai"]').value;
+    const loaiInput = form.querySelector('input[name="loai"]');
+    let loai = loaiInput ? loaiInput.value.trim() : '';
+    const maInput = form.querySelector('input[name="ma"]');
+    const ma = maInput ? maInput.value.trim() : '';
     const ten = form.querySelector('#editTen').value.trim();
     const gia = form.querySelector('#editGia').value.trim();
     const bapNuocHidden = form.querySelector('#editBapNuocHidden').value.trim();
 
+    console.log("Edit Form - Gia value: ", gia); // Debug log
+    console.log("Edit Form - All form data: ", new FormData(form)); // Debug log
+
+    if (!ma) {
+        errors.push("Mã không được để trống.");
+    }
+    if (!loai) {
+        loai = document.getElementById('editModal').dataset.loai || '${fn:escapeXml(editLoai != null ? editLoai : "Bắp Nước")}';
+        if (loaiInput) loaiInput.value = loai;
+        console.log("Loai value after fallback: ", loai);
+    }
     if (!ten) errors.push("Tên không được để trống.");
-    if (!gia || parseFloat(gia.replace(/[^0-9.]/g, '')) <= 0) errors.push("Giá phải là số dương.");
+    if (!gia) {
+        errors.push("Giá không được để trống.");
+    } else if (!isValidNumber(gia)) {
+        errors.push("Giá phải là số hợp lệ (ví dụ: 50000 hoặc 50000.00).");
+    } else if (parseFloat(gia.replace(/[^0-9.]/g, '')) <= 0) {
+        errors.push("Giá phải là số dương.");
+    }
     if (loai === 'Combo' && !bapNuocHidden) errors.push("Danh sách bắp nước không được để trống.");
 
     if (errors.length > 0) {
@@ -386,13 +417,12 @@ function filterTable() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Xử lý định dạng giá cho form thêm
     const addGiaInput = document.getElementById('addGia');
     if (addGiaInput) {
         addGiaInput.addEventListener('input', function (e) {
             let rawValue = e.target.value;
             let cleaned = rawValue.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-            if (cleaned) {
+            if (cleaned && isValidNumber(cleaned)) {
                 const parsed = parseFloat(cleaned);
                 if (!isNaN(parsed) && parsed >= 0) {
                     const formatted = formatCurrencyWithDecimal(parsed);
@@ -406,13 +436,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Xử lý định dạng giá cho form sửa
     const editGiaInput = document.getElementById('editGia');
     if (editGiaInput) {
         editGiaInput.addEventListener('input', function (e) {
             let rawValue = e.target.value;
             let cleaned = rawValue.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-            if (cleaned) {
+            if (cleaned && isValidNumber(cleaned)) {
                 const parsed = parseFloat(cleaned);
                 if (!isNaN(parsed) && parsed >= 0) {
                     const formatted = formatCurrencyWithDecimal(parsed);
@@ -426,61 +455,44 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Xử lý submit form thêm
     const addForm = document.getElementById('addForm');
     if (addForm) {
         addForm.addEventListener('submit', function (e) {
             e.preventDefault();
             updateHiddenInput('addBapNuocContainer');
-            if (!validateAddForm(this)) {
-                return;
+            if (validateAddForm(this)) {
+                this.submit();
             }
-            const formData = new FormData(this);
-            console.log('Add Form data to be sent:');
-            for (let [key, value] of formData.entries()) {
-                console.log(`${key}: ${value}`);
-            }
-            this.submit();
         });
     }
 
-    // Xử lý submit form sửa
     const editForm = document.getElementById('editForm');
     if (editForm) {
         editForm.addEventListener('submit', function (e) {
             e.preventDefault();
             updateHiddenInput('editBapNuocContainer');
-            if (!validateEditForm(this)) {
-                return;
+            if (validateEditForm(this)) {
+                this.submit();
             }
-            const formData = new FormData(this);
-            console.log('Edit Form data to be sent:');
-            for (let [key, value] of formData.entries()) {
-                console.log(`${key}: ${value}`);
-            }
-            this.submit();
         });
     }
 
-    // Initial filter call
     filterTable();
 
-    // Hiển thị modal chỉnh sửa nếu có yêu cầu từ server
     <c:if test="${showEditModal}">
         document.getElementById('editModal').style.display = 'flex';
+        document.getElementById('editModal').dataset.loai = '${fn:escapeXml(editLoai)}';
         <c:if test="${editLoai == 'Combo'}">
             document.getElementById('editMoTaField').style.display = 'block';
             document.getElementById('editComboItemsField').style.display = 'block';
         </c:if>
     </c:if>
 
-    // Hiển thị modal thêm nếu có lỗi từ server
     <c:if test="${addFormData != null}">
         document.getElementById('addModal').style.display = 'flex';
         toggleAddFields();
     </c:if>
 
-    // Ẩn thông báo sau 5 giây
     const errorMessage = document.getElementById('errorMessage');
     if (errorMessage) {
         setTimeout(() => {

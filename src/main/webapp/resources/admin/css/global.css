@@ -277,22 +277,23 @@ a:hover {
 
 
 /* Phân trang */
+/* Phân trang */
 .pagination {
     display: flex;
     justify-content: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    /* position: relative; */
+    margin-top: 10px; /* Giảm margin-top */
+    margin-bottom: 10px; /* Giảm margin-bottom */
 }
 
 .pagination .page-item {
-    margin: 0 5px;
+    margin: 0 2px; /* Giảm margin giữa các mục */
 }
 
 .pagination .page-link {
     color: var(--accent-color); /* #2C99AE */
     border: 1px solid var(--border-color); /* #DEE2E6 */
-    padding: 8px 16px;
+    padding: 4px 8px; /* Giảm padding */
+    font-size: 0.875rem; /* Giảm kích thước chữ */
     text-decoration: none;
     transition: background-color 0.3s;
 }
@@ -305,7 +306,7 @@ a:hover {
 .pagination .page-item.active .page-link {
     background-color: var(--accent-color); /* #2C99AE */
     color: var(--text-color-light); /* #F8DAD0 */
-    border-color: var(--accent-color); /* #2C99AE */
+    border-color: var(--accent-color); /* #2C99AE */	
 }
 
 .pagination .page-item.disabled .page-link {

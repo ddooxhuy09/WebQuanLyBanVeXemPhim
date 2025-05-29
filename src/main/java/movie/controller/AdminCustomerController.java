@@ -14,7 +14,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -23,19 +25,63 @@ public class AdminCustomerController {
     @Autowired
     private SessionFactory sessionFactory;
 
+    private static final int ITEMS_PER_PAGE = 25; // 25 bản ghi/trang
+    private static final int PAGES_TO_SHOW = 5; // Hiển thị 5 trang
+
     @RequestMapping(value = "/customers", method = RequestMethod.GET)
-    public String showCustomerManager(Model model) {
+    public String showCustomerManager(
+            Model model,
+            @RequestParam(value = "page", defaultValue = "1") int page) {
         Session dbSession = sessionFactory.openSession();
         try {
-            // Lấy danh sách khách hàng, tương tự AdminMovieController
-            Query query = dbSession.createQuery("FROM KhachHangEntity");
-            List khachHangEntities = query.list(); // Không chỉ định kiểu ngay
+            // Đếm tổng số bản ghi khách hàng
+            Query countQuery = dbSession.createQuery("SELECT COUNT(k) FROM KhachHangEntity k");
+            Long totalItems = (Long) countQuery.uniqueResult();
+
+            // Tính tổng số trang
+            int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+            int start = (page - 1) * ITEMS_PER_PAGE;
+
+            // Lấy danh sách khách hàng cho trang hiện tại
+            Query query = dbSession.createQuery("FROM KhachHangEntity ORDER BY maKhachHang");
+            query.setFirstResult(start);
+            query.setMaxResults(ITEMS_PER_PAGE);
+            List khachHangEntities = query.list();
             List<KhachHangModel> customerList = new ArrayList<>();
+            List<String> maKhachHangList = new ArrayList<>();
             for (Object obj : khachHangEntities) {
                 KhachHangEntity entity = (KhachHangEntity) obj;
                 customerList.add(new KhachHangModel(entity));
+                maKhachHangList.add(entity.getMaKhachHang());
             }
+
+            // Lấy danh sách đơn hàng cho các khách hàng trong trang hiện tại
+            Map<String, List<DonHangModel>> customerOrdersMap = new HashMap<>();
+            if (!maKhachHangList.isEmpty()) {
+                Query ordersQuery = dbSession.createQuery("FROM DonHangEntity WHERE maKhachHang IN (:maKhachHangList)");
+                ordersQuery.setParameterList("maKhachHangList", maKhachHangList);
+                List<DonHangEntity> donHangEntities = ordersQuery.list();
+                for (DonHangEntity donHang : donHangEntities) {
+                    String maKhachHang = donHang.getMaKhachHang();
+                    customerOrdersMap.computeIfAbsent(maKhachHang, k -> new ArrayList<>()).add(new DonHangModel(donHang));
+                }
+            }
+
+            // Tính phạm vi trang hiển thị
+            List<Integer> pageRange = new ArrayList<>();
+            int startPage = Math.max(1, page - (PAGES_TO_SHOW / 2));
+            int endPage = Math.min(totalPages, startPage + PAGES_TO_SHOW - 1);
+            startPage = Math.max(1, endPage - PAGES_TO_SHOW + 1);
+            for (int i = startPage; i <= endPage; i++) {
+                pageRange.add(i);
+            }
+
             model.addAttribute("customerList", customerList);
+            model.addAttribute("customerOrdersMap", customerOrdersMap);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", totalPages);
+            model.addAttribute("pageRange", pageRange);
+
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi lấy danh sách khách hàng: " + e.getMessage());
@@ -47,51 +93,34 @@ public class AdminCustomerController {
 
     @Transactional
     @RequestMapping(value = "/customers/delete/{maKhachHang}", method = RequestMethod.GET)
-    public String deleteCustomer(@PathVariable("maKhachHang") String maKhachHang, Model model) {
+    public String deleteCustomer(
+            @PathVariable("maKhachHang") String maKhachHang,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            Model model) {
         try {
             Session dbSession = sessionFactory.getCurrentSession();
             KhachHangEntity khachHang = (KhachHangEntity) dbSession.get(KhachHangEntity.class, maKhachHang);
-            if (khachHang != null) {
-                // Kiểm tra đơn hàng, tương tự cách AdminMovieController kiểm tra liên kết
-                Query query = dbSession.createQuery("FROM DonHangEntity WHERE maKhachHang = :maKhachHang");
-                query.setParameter("maKhachHang", maKhachHang);
-                List donHangs = query.list();
-                if (!donHangs.isEmpty()) {
-                    model.addAttribute("error", "Không thể xóa khách hàng vì có đơn hàng liên quan.");
-                    return "redirect:/admin/customers";
-                }
-                dbSession.delete(khachHang);
-            } else {
+            if (khachHang == null) {
                 model.addAttribute("error", "Không tìm thấy khách hàng với mã " + maKhachHang);
+                return showCustomerManager(model, page);
             }
-            return "redirect:/admin/customers";
+
+            // Kiểm tra đơn hàng
+            Query query = dbSession.createQuery("FROM DonHangEntity WHERE maKhachHang = :maKhachHang");
+            query.setParameter("maKhachHang", maKhachHang);
+            List donHangs = query.list();
+            if (!donHangs.isEmpty()) {
+                model.addAttribute("error", "Không thể xóa khách hàng với mã " + maKhachHang + " vì đã có đơn hàng liên quan.");
+                return showCustomerManager(model, page);
+            }
+
+            dbSession.delete(khachHang);
+            model.addAttribute("success", "Xóa khách hàng với mã " + maKhachHang + " thành công.");
+            return showCustomerManager(model, page);
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Lỗi khi xóa khách hàng: " + e.getMessage());
-            return "redirect:/admin/customers";
-        }
-    }
-
-    @RequestMapping(value = "/customers/orders/{maKhachHang}", method = RequestMethod.GET)
-    @ResponseBody
-    public List<DonHangModel> getCustomerOrders(@PathVariable("maKhachHang") String maKhachHang) {
-        Session dbSession = sessionFactory.openSession();
-        try {
-            // Lấy danh sách đơn hàng theo khách hàng
-            Query query = dbSession.createQuery("FROM DonHangEntity WHERE maKhachHang = :maKhachHang");
-            query.setParameter("maKhachHang", maKhachHang);
-            List donHangEntities = query.list();
-            List<DonHangModel> orderList = new ArrayList<>();
-            for (Object obj : donHangEntities) {
-                DonHangEntity entity = (DonHangEntity) obj;
-                orderList.add(new DonHangModel(entity));
-            }
-            return orderList;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        } finally {
-            dbSession.close();
+            return showCustomerManager(model, page);
         }
     }
 }

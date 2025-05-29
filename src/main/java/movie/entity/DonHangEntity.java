@@ -16,6 +16,10 @@ public class DonHangEntity {
     @Column(name = "MaKhachHang", length = 10)
     private String maKhachHang;
 
+    @ManyToOne
+    @JoinColumn(name = "MaKhachHang", referencedColumnName = "MaKhachHang", insertable = false, updatable = false)
+    private KhachHangEntity khachHang;
+
     @Column(name = "MaKhuyenMai", length = 10)
     private String maKhuyenMai;
 
@@ -58,6 +62,8 @@ public class DonHangEntity {
     public void setMaDonHang(String maDonHang) { this.maDonHang = maDonHang; }
     public String getMaKhachHang() { return maKhachHang; }
     public void setMaKhachHang(String maKhachHang) { this.maKhachHang = maKhachHang; }
+    public KhachHangEntity getKhachHang() { return khachHang; }
+    public void setKhachHang(KhachHangEntity khachHang) { this.khachHang = khachHang; }
     public String getMaKhuyenMai() { return maKhuyenMai; }
     public void setMaKhuyenMai(String maKhuyenMai) { this.maKhuyenMai = maKhuyenMai; }
     public String getMaQuyDoi() { return maQuyDoi; }
