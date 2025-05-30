@@ -1,0 +1,382 @@
+/* Global.css */
+:root {
+    --font-family: 'Roboto', sans-serif;
+    --heading-font-family: 'Montserrat', sans-serif;
+    --sidebar-bg-color: #001C44;
+    --text-color: #001C44;
+    --text-color-light: #F8DAD0;
+    --accent-color: #2C99AE;
+    --hover-color: #0C5776;
+    --card-bg-color: #BCFEFD;
+    --border-color: #DEE2E6;
+    --bg-base: #fff;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    font-size: 1rem;
+}
+
+*, *:before, *:after {
+    box-sizing: border-box;
+}
+
+html, body {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    background-color: var(--bg-base);
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--heading-font-family);
+    color: var(--text-color);
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+}
+a:hover {
+  text-decoration: none;
+}
+
+.container-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.main-content {
+    flex-grow: 1;
+    min-height: 100vh;
+    min-width: 0;
+    padding: 1.5rem;
+    background: var(--bg-base);
+    border-radius: 0.25rem;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px;
+}
+
+.header h1 {
+    font-family: var(--heading-font-family);
+    font-size: 1.75rem;
+    color: var(--text-color);
+}
+
+.search-bar {
+    margin-bottom: 1.5rem;
+}
+
+.search-bar form {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.search-bar .input-group {
+    width: 100%;
+    max-width: 500px;
+}
+
+#content {
+    flex-grow: 1;
+}
+
+/*hiện thông báo*/
+    .error-notification {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        border: 1px solid #ccc;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .notification-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .notification-title {
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    }
+
+    #errorMessage {
+        margin-bottom: 10px;
+        color: red;
+    }
+
+
+/*kết thúc hiện thông báo*/
+
+/* Nút tùy chỉnh duy nhất */
+.custom-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem; /* Tăng padding nhẹ cho dễ bấm */
+    font-family: var(--font-family);
+    font-size: clamp(0.875rem, 2.5vw, 0.95rem); /* Responsive font-size */
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    outline: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    background-color: var(--sidebar-bg-color);
+    color: var(--text-color-light);
+    margin: 0.5rem; /* Giảm margin để tiết kiệm không gian */
+    min-width: 80px; /* Đảm bảo nút không quá nhỏ */
+}
+
+.custom-btn:hover {
+    background-color: var(--hover-color);
+    color: var(--text-color-light);
+}
+
+.custom-btn:focus {
+    outline: none;
+    box-shadow: 0 0 5px var(--shadow-color);
+}
+
+.custom-btn.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Các phần còn lại giữ nguyên */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    background-color: var(--bg-base);
+    color: var(--text-color);
+    border-collapse: collapse;
+    white-space: nowrap;
+    vertical-align: middle;
+    margin-bottom: 1rem;
+}
+
+.table thead {
+    background-color: var(--sidebar-bg-color);
+}
+
+.table th {
+    padding: 0.75rem;
+    font-family: var(--heading-font-family);
+    font-weight: 600;
+    color: var(--text-color-light);
+    border-bottom: 2px solid var(--border-color);
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table td {
+    padding: 0.75rem;
+    font-family: var(--font-family);
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Định dạng modal hiển thị hình ảnh phóng to */
+#imageZoomModal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+#imageZoomModal .modal-content.image-zoom-content {
+    padding: 1rem;
+    text-align: center;
+    background: var(--bg-base); /* #fff */
+    border-radius: 8px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#zoomedImage {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+#imageZoomModal .custom-btn {
+    padding: 0.5rem 1rem;
+    background: var(--accent-color); /* #2C99AE */
+    color: var(--text-color-light); /* #F8DAD0 */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#imageZoomModal .custom-btn:hover {
+    background: var(--hover-color); /* #0C5776 */
+}
+
+.image-zoom-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+}
+
+.room-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
+}
+
+
+/* Phân trang */
+/* Phân trang */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px; /* Giảm margin-top */
+    margin-bottom: 10px; /* Giảm margin-bottom */
+}
+
+.pagination .page-item {
+    margin: 0 2px; /* Giảm margin giữa các mục */
+}
+
+.pagination .page-link {
+    color: var(--accent-color); /* #2C99AE */
+    border: 1px solid var(--border-color); /* #DEE2E6 */
+    padding: 4px 8px; /* Giảm padding */
+    font-size: 0.875rem; /* Giảm kích thước chữ */
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.pagination .page-link:hover {
+    background-color: var(--border-color); /* #DEE2E6 */
+    color: var(--text-color); /* #001C44 */
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--accent-color); /* #2C99AE */
+    color: var(--text-color-light); /* #F8DAD0 */
+    border-color: var(--accent-color); /* #2C99AE */	
+}
+
+.pagination .page-item.disabled .page-link {
+    color: var(--text-color); /* #001C44 */
+    pointer-events: none;
+    background-color: var(--bg-base); /* #fff */
+    border-color: var(--border-color); /* #DEE2E6 */
+}
+
+/* Đảm bảo nội dung trong modal không bị ngắt dòng không mong muốn */
+#fullDescription {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    margin: 0;
+}
+
+/* Định dạng thông báo không có dữ liệu */
+.no-data {
+    text-align: center;
+    color: var(--text-color); /* #001C44 */
+    font-style: italic;
+}
+
+/* Định dạng modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-base); /* #fff */
+    padding: 20px;
+    border-radius: 5px;
+    width: 500px;
+    max-width: 90%;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Định dạng cho liên kết "Xem thêm" */
+.view-more {
+    cursor: pointer;
+    color: var(--accent-color); /* #2C99AE */
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+.view-more:hover {
+    color: var(--hover-color); /* #0C5776 */
+    text-decoration: underline;
+}
+
+/* Nút cố định ở trên cùng */
+.fixed-add-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 980;
+}

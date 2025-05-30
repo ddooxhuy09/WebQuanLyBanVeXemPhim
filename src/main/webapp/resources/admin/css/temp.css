@@ -1,0 +1,20 @@
+/* Css cho các bảng thông thường*/
+
+
+
+.table th,
+.table td {
+    padding: 0.25rem;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table .custom-btn {
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+/* hết Css cho các bảng thông thường*/
