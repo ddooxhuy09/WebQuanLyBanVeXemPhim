@@ -249,7 +249,7 @@ public class AdminFoodComboController {
         BigDecimal gia = null;
         List<String> bapNuocIds = new ArrayList<>();
         List<Integer> soLuongs = new ArrayList<>();
-        
+
         try {
             // Validate tên
             if (ten == null || ten.trim().isEmpty()) {
@@ -258,22 +258,22 @@ public class AdminFoodComboController {
                 errors.add("Tên " + ten.trim() + " đã tồn tại trong hệ thống.");
             }
 
-            // Validate giá
+            // Làm sạch và chuyển đổi giá
             if (giaStr == null || giaStr.trim().isEmpty()) {
                 errors.add("Giá không được để trống.");
             } else {
-                if (!giaStr.matches("^\\d*\\.?\\d*$")) {
-                    errors.add("Giá phải là số hợp lệ (ví dụ: 50000 hoặc 50000.00).");
-                } else {
-                    try {
-                        String cleanedGia = giaStr.replaceAll("[^0-9.]", "");
+                try {
+                    String cleanedGia = giaStr.replaceAll("[^0-9.]", ""); // Loại bỏ tất cả ký tự không phải số hoặc dấu chấm
+                    if (cleanedGia.isEmpty()) {
+                        errors.add("Giá phải là số hợp lệ.");
+                    } else {
                         gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
                         if (gia.compareTo(BigDecimal.ZERO) <= 0) {
                             errors.add("Giá phải là số dương.");
                         }
-                    } catch (NumberFormatException e) {
-                        errors.add("Giá không đúng định dạng số.");
                     }
+                } catch (NumberFormatException e) {
+                    errors.add("Giá không đúng định dạng số.");
                 }
             }
 
@@ -420,22 +420,22 @@ public class AdminFoodComboController {
                 errors.add("Tên " + ten.trim() + " đã tồn tại trong hệ thống.");
             }
 
-            // Validate giá
+            // Làm sạch và chuyển đổi giá
             if (giaStr == null || giaStr.trim().isEmpty()) {
                 errors.add("Giá không được để trống.");
             } else {
-                if (!giaStr.matches("^\\d*\\.?\\d*$")) {
-                    errors.add("Giá phải là số hợp lệ (ví dụ: 50000 hoặc 50000.00).");
-                } else {
-                    try {
-                        String cleanedGia = giaStr.replaceAll("[^0-9.]", "");
+                try {
+                    String cleanedGia = giaStr.replaceAll("[^0-9.]", ""); // Loại bỏ tất cả ký tự không phải số hoặc dấu chấm
+                    if (cleanedGia.isEmpty()) {
+                        errors.add("Giá phải là số hợp lệ.");
+                    } else {
                         gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
                         if (gia.compareTo(BigDecimal.ZERO) <= 0) {
                             errors.add("Giá phải là số dương.");
                         }
-                    } catch (NumberFormatException e) {
-                        errors.add("Giá không đúng định dạng số.");
                     }
+                } catch (NumberFormatException e) {
+                    errors.add("Giá không đúng định dạng số.");
                 }
             }
 
