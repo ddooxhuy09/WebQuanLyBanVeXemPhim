@@ -621,13 +621,35 @@ public class BookingController {
             HttpSession session,
             Model model) {
         try {
-            if (promoCode == null || promoCode.isEmpty()) {
+            // Kiểm tra promoCode
+            if (promoCode == null || promoCode.trim().isEmpty()) {
                 model.addAttribute("error", "Vui lòng nhập mã khuyến mãi!");
                 return "user/payment";
             }
+            promoCode = promoCode.trim();
+            System.out.println("Applying promoCode: " + promoCode);
 
+            // Kiểm tra session attributes
+            String selectedSeats = (String) session.getAttribute("selectedSeats");
+            if (selectedSeats == null || selectedSeats.isEmpty()) {
+                model.addAttribute("error", "Thông tin đặt vé không đầy đủ. Vui lòng chọn lại ghế.");
+                return "redirect:/home/";
+            }
+
+            // Lấy tổng tiền
+            BigDecimal tongTien = (BigDecimal) session.getAttribute("originTongTien");
+            if (tongTien == null) {
+                tongTien = (BigDecimal) session.getAttribute("tongTien");
+                if (tongTien == null) {
+                    model.addAttribute("error", "Không tìm thấy thông tin đơn hàng!");
+                    return "redirect:/home/";
+                }
+                session.setAttribute("originTongTien", tongTien);
+            }
+            System.out.println("tongTien: " + tongTien);
+
+            // Truy vấn khuyến mãi
             Session dbSession = sessionFactory.getCurrentSession();
-
             Query khuyenMaiQuery = dbSession.createQuery(
                     "FROM KhuyenMaiEntity k WHERE k.maCode = :maCode AND :currentDate BETWEEN k.ngayBatDau AND k.ngayKetThuc");
             khuyenMaiQuery.setParameter("maCode", promoCode);
@@ -638,20 +660,19 @@ public class BookingController {
                 model.addAttribute("error", "Mã khuyến mãi không hợp lệ hoặc đã hết hạn!");
                 return "user/payment";
             }
+            System.out.println("khuyenMai: " + khuyenMai.getMaCode());
 
-            BigDecimal tongTien = (BigDecimal) session.getAttribute("originTongTien");
-            if (tongTien == null) {
-                tongTien = (BigDecimal) session.getAttribute("tongTien");
-                if (tongTien == null) {
-                    model.addAttribute("error", "Không tìm thấy thông tin đơn hàng!");
-                    return "user/payment";
-                }
-                session.setAttribute("originTongTien", tongTien);
+            // Kiểm tra loại giảm giá
+            String loaiGiamGia = khuyenMai.getLoaiGiamGia();
+            if (!"Phần trăm".equals(loaiGiamGia) && !"Cố định".equals(loaiGiamGia)) {
+                model.addAttribute("error", "Loại giảm giá không hợp lệ!");
+                return "user/payment";
             }
 
+            // Tính toán giảm giá
             BigDecimal discountAmount;
             BigDecimal newTotal;
-            if ("Phần trăm".equals(khuyenMai.getLoaiGiamGia())) {
+            if ("Phần trăm".equals(loaiGiamGia)) {
                 BigDecimal discountPercentage = khuyenMai.getGiaTriGiam().divide(new BigDecimal("100"));
                 discountAmount = tongTien.multiply(discountPercentage);
                 newTotal = tongTien.subtract(discountAmount);
@@ -663,36 +684,26 @@ public class BookingController {
                 }
             }
 
+            // Lưu thông tin vào session
             session.setAttribute("appliedPromoCode", promoCode);
             session.setAttribute("discountAmount", discountAmount);
             session.setAttribute("maKhuyenMai", khuyenMai.getMaKhuyenMai());
             session.setAttribute("tongTien", newTotal);
 
+            // Cập nhật model
             model.addAttribute("promoCode", promoCode);
             model.addAttribute("khuyenMai", khuyenMai);
             model.addAttribute("discountAmount", discountAmount);
             model.addAttribute("tongTien", newTotal);
             model.addAttribute("success", "Mã khuyến mãi đã được áp dụng thành công!");
-
-            String selectedSeats = (String) session.getAttribute("selectedSeats");
-            Map<String, Integer> selectedCombos = (Map<String, Integer>) session.getAttribute("selectedCombos");
-            Map<String, Integer> selectedBapNuocs = (Map<String, Integer>) session.getAttribute("selectedBapNuocs");
-            Map<String, BigDecimal> vePrices = (Map<String, BigDecimal>) session.getAttribute("vePrices");
-            Map<String, BigDecimal> comboPrices = (Map<String, BigDecimal>) session.getAttribute("comboPrices");
-            Map<String, BigDecimal> bapNuocPrices = (Map<String, BigDecimal>) session.getAttribute("bapNuocPrices");
-            List<PhuThuModel> phuThuList = (List<PhuThuModel>) session.getAttribute("phuThuList");
-            BigDecimal tongPhuThu = (BigDecimal) session.getAttribute("tongPhuThu");
-
-            if (selectedSeats != null) {
-                model.addAttribute("selectedSeats", Arrays.asList(selectedSeats.split(",")));
-            }
-            model.addAttribute("selectedCombos", selectedCombos);
-            model.addAttribute("selectedBapNuocs", selectedBapNuocs);
-            model.addAttribute("vePrices", vePrices);
-            model.addAttribute("comboPrices", comboPrices);
-            model.addAttribute("bapNuocPrices", bapNuocPrices);
-            model.addAttribute("phuThuList", phuThuList);
-            model.addAttribute("tongPhuThu", tongPhuThu);
+            model.addAttribute("selectedSeats", selectedSeats);
+            model.addAttribute("selectedCombos", session.getAttribute("selectedCombos"));
+            model.addAttribute("selectedBapNuocs", session.getAttribute("selectedBapNuocs"));
+            model.addAttribute("vePrices", session.getAttribute("vePrices"));
+            model.addAttribute("comboPrices", session.getAttribute("comboPrices"));
+            model.addAttribute("bapNuocPrices", session.getAttribute("bapNuocPrices"));
+            model.addAttribute("phuThuList", session.getAttribute("phuThuList"));
+            model.addAttribute("tongPhuThu", session.getAttribute("tongPhuThu"));
 
             return "user/payment";
         } catch (Exception e) {
@@ -718,6 +729,7 @@ public class BookingController {
                 return "user/payment";
             }
 
+            // Kiểm tra số điểm
             int tongDiem = loggedInUser.getTongDiem();
             int points;
             try {
@@ -737,6 +749,7 @@ public class BookingController {
                 return "user/payment";
             }
 
+            // Lấy tổng tiền
             BigDecimal tongTien = (BigDecimal) session.getAttribute("originTongTien");
             if (tongTien == null) {
                 tongTien = (BigDecimal) session.getAttribute("tongTien");
@@ -747,11 +760,31 @@ public class BookingController {
                 session.setAttribute("originTongTien", tongTien);
             }
 
-            BigDecimal discountAmount = (BigDecimal) session.getAttribute("discountAmount");
-            if (discountAmount != null) {
-                tongTien = tongTien.subtract(discountAmount);
+            // Kiểm tra mã khuyến mãi (nếu có)
+            Session dbSession = sessionFactory.getCurrentSession();
+            BigDecimal discountAmount = BigDecimal.ZERO;
+            KhuyenMaiEntity khuyenMai = null;
+            if (promoCode != null && !promoCode.isEmpty()) {
+                Query khuyenMaiQuery = dbSession.createQuery(
+                        "FROM KhuyenMaiEntity k WHERE k.maCode = :maCode AND :currentDate BETWEEN k.ngayBatDau AND k.ngayKetThuc");
+                khuyenMaiQuery.setParameter("maCode", promoCode);
+                khuyenMaiQuery.setParameter("currentDate", new Date());
+                khuyenMai = (KhuyenMaiEntity) khuyenMaiQuery.uniqueResult();
+                if (khuyenMai != null) {
+                    if ("Phần trăm".equals(khuyenMai.getLoaiGiamGia())) {
+                        BigDecimal discountPercentage = khuyenMai.getGiaTriGiam().divide(new BigDecimal("100"));
+                        discountAmount = tongTien.multiply(discountPercentage);
+                    } else {
+                        discountAmount = khuyenMai.getGiaTriGiam();
+                    }
+                    session.setAttribute("discountAmount", discountAmount);
+                    session.setAttribute("maKhuyenMai", khuyenMai.getMaKhuyenMai());
+                    session.setAttribute("appliedPromoCode", promoCode);
+                }
             }
+            tongTien = tongTien.subtract(discountAmount);
 
+            // Tính toán giảm giá từ điểm
             BigDecimal pointsDiscount = new BigDecimal(points).multiply(new BigDecimal("10"));
             BigDecimal newTotal = tongTien.subtract(pointsDiscount);
 
@@ -762,16 +795,17 @@ public class BookingController {
                 newTotal = tongTien.subtract(pointsDiscount);
             }
 
+            // Lưu thông tin vào session
             session.setAttribute("appliedPoints", points);
             session.setAttribute("pointsDiscount", pointsDiscount);
             session.setAttribute("tongTien", newTotal);
 
+            // Cập nhật model
             model.addAttribute("appliedPoints", points);
             model.addAttribute("pointsDiscount", pointsDiscount);
             model.addAttribute("tongTien", newTotal);
             model.addAttribute("promoCode", promoCode);
             model.addAttribute("success", "Điểm đã được áp dụng thành công!");
-
             model.addAttribute("selectedSeats", selectedSeats);
             model.addAttribute("maPhim", maPhim);
             model.addAttribute("maSuatChieu", maSuatChieu);
@@ -782,16 +816,7 @@ public class BookingController {
             model.addAttribute("bapNuocPrices", session.getAttribute("bapNuocPrices"));
             model.addAttribute("phuThuList", session.getAttribute("phuThuList"));
             model.addAttribute("tongPhuThu", session.getAttribute("tongPhuThu"));
-            model.addAttribute("discountAmount", session.getAttribute("discountAmount"));
-
-            Session dbSession = sessionFactory.getCurrentSession();
-            String maKhuyenMai = (String) session.getAttribute("maKhuyenMai");
-            KhuyenMaiEntity khuyenMai = null;
-            if (maKhuyenMai != null) {
-                Query khuyenMaiQuery = dbSession.createQuery("FROM KhuyenMaiEntity k WHERE k.maKhuyenMai = :maKhuyenMai");
-                khuyenMaiQuery.setParameter("maKhuyenMai", maKhuyenMai);
-                khuyenMai = (KhuyenMaiEntity) khuyenMaiQuery.uniqueResult();
-            }
+            model.addAttribute("discountAmount", discountAmount);
             model.addAttribute("khuyenMai", khuyenMai);
 
             return "user/payment";
@@ -864,6 +889,34 @@ public class BookingController {
                     session.setAttribute("loggedInUser", loggedInUser);
                 }
             }
+
+            // Lấy tên combo và bắp nước
+            Map<String, String> comboNames = new HashMap<>();
+            Map<String, String> bapNuocNames = new HashMap<>();
+            if (selectedCombos != null && !selectedCombos.isEmpty()) {
+                for (String maCombo : selectedCombos.keySet()) {
+                    Query comboQuery = dbSession.createQuery("FROM ComboEntity c WHERE c.maCombo = :maCombo");
+                    comboQuery.setParameter("maCombo", maCombo);
+                    ComboEntity combo = (ComboEntity) comboQuery.uniqueResult();
+                    if (combo != null) {
+                        comboNames.put(maCombo, combo.getTenCombo());
+                    }
+                }
+            }
+            if (selectedBapNuocs != null && !selectedBapNuocs.isEmpty()) {
+                for (String maBapNuoc : selectedBapNuocs.keySet()) {
+                    Query bapNuocQuery = dbSession.createQuery("FROM BapNuocEntity b WHERE b.maBapNuoc = :maBapNuoc");
+                    bapNuocQuery.setParameter("maBapNuoc", maBapNuoc);
+                    BapNuocEntity bapNuoc = (BapNuocEntity) bapNuocQuery.uniqueResult();
+                    if (bapNuoc != null) {
+                        bapNuocNames.put(maBapNuoc, bapNuoc.getTenBapNuoc());
+                    }
+                }
+            }
+
+            // Lưu tên vào model
+            model.addAttribute("comboNames", comboNames);
+            model.addAttribute("bapNuocNames", bapNuocNames);
 
             if ("vnpay".equals(paymentMethod)) {
                 String vnp_TxnRef = maDonHang;
@@ -1118,6 +1171,34 @@ public class BookingController {
                     List<PhuThuModel> phuThuList = (List<PhuThuModel>) session.getAttribute("phuThuList");
                     BigDecimal tongPhuThu = (BigDecimal) session.getAttribute("tongPhuThu");
                     BigDecimal pointsDiscount = (BigDecimal) session.getAttribute("pointsDiscount");
+
+                    // Lấy tên combo và bắp nước
+                    Map<String, String> comboNames = new HashMap<>();
+                    Map<String, String> bapNuocNames = new HashMap<>();
+                    if (selectedCombos != null && !selectedCombos.isEmpty()) {
+                        for (String maCombo : selectedCombos.keySet()) {
+                            Query comboQuery = dbSession.createQuery("FROM ComboEntity c WHERE c.maCombo = :maCombo");
+                            comboQuery.setParameter("maCombo", maCombo);
+                            ComboEntity combo = (ComboEntity) comboQuery.uniqueResult();
+                            if (combo != null) {
+                                comboNames.put(maCombo, combo.getTenCombo());
+                            }
+                        }
+                    }
+                    if (selectedBapNuocs != null && !selectedBapNuocs.isEmpty()) {
+                        for (String maBapNuoc : selectedBapNuocs.keySet()) {
+                            Query bapNuocQuery = dbSession.createQuery("FROM BapNuocEntity b WHERE b.maBapNuoc = :maBapNuoc");
+                            bapNuocQuery.setParameter("maBapNuoc", maBapNuoc);
+                            BapNuocEntity bapNuoc = (BapNuocEntity) bapNuocQuery.uniqueResult();
+                            if (bapNuoc != null) {
+                                bapNuocNames.put(maBapNuoc, bapNuoc.getTenBapNuoc());
+                            }
+                        }
+                    }
+
+                    // Lưu tên vào model
+                    model.addAttribute("comboNames", comboNames);
+                    model.addAttribute("bapNuocNames", bapNuocNames);
 
                     if (selectedCombos != null && !selectedCombos.isEmpty()) {
                         for (Map.Entry<String, Integer> combo : selectedCombos.entrySet()) {

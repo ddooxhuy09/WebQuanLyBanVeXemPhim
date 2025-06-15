@@ -58,4 +58,10 @@ public class KhachHangEntity {
     public void congDiem(int diemThem) {
         this.tongDiem += diemThem;
     }
+
+    // Thêm phương thức để ghép họ và tên
+    public String getHoVaTen() {
+        return (hoKhachHang != null ? hoKhachHang + " " : "")
+                + (tenKhachHang != null ? tenKhachHang : "N/A");
+    }
 }

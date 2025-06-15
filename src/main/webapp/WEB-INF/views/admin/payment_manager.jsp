@@ -3,10 +3,9 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
-<!-- Debug context path -->
-<div style="display: none;">
-    Context Path: <c:out value="${pageContext.request.contextPath}" />
-</div>
+
+<!-- Include currency-utils.js -->
+<script src="${pageContext.request.contextPath}/resources/admin/js/currency-utils.js"></script>
 
 <!-- Header -->
 <div class="header">
@@ -48,10 +47,6 @@
     </form>
 </div>
 
-<!-- Error Message -->
-<c:if test="${not empty error}">
-    <div class="alert alert-danger">${fn:escapeXml(error)}</div>
-</c:if>
 
 <!-- Danh Sách Thanh Toán -->
 <div class="table-responsive">
@@ -79,7 +74,9 @@
                             <td data-field="maThanhToan">${thanhToan.maThanhToan}</td>
                             <td data-field="maDonHang">${thanhToan.maDonHang}</td>
                             <td data-field="phuongThuc">${thanhToan.phuongThuc}</td>
-                            <td data-field="soTien"><fmt:formatNumber value="${thanhToan.soTien}" type="currency" currencySymbol="₫" groupingUsed="true"/></td>
+                            <td data-field="soTien">
+                                <script>document.write(formatCurrencyWithDecimal(${thanhToan.soTien}));</script>
+                            </td>
                             <td data-field="ngayThanhToan"><fmt:formatDate value="${thanhToan.ngayThanhToan}" pattern="dd/MM/yyyy"/></td>
                             <td data-field="trangThai">${thanhToan.trangThai}</td>
                         </tr>

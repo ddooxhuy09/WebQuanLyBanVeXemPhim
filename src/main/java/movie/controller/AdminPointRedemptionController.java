@@ -2,6 +2,7 @@ package movie.controller;
 
 import movie.entity.QuyDoiDiemEntity;
 import movie.model.QuyDoiDiemModel;
+import movie.entity.DonHangEntity;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Query;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
@@ -123,7 +125,8 @@ public class AdminPointRedemptionController {
             @RequestParam("loaiUuDai") String loaiUuDai,
             @RequestParam("giaTriGiam") BigDecimal giaTriGiam,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/admin/auth/login";
         }
@@ -133,34 +136,44 @@ public class AdminPointRedemptionController {
             dbSession.beginTransaction();
 
             // Kiểm tra mã trùng
-            Query checkQuery = dbSession.createQuery("FROM QuyDoiDiemEntity WHERE maQuyDoi = :maQuyDoi");
-            checkQuery.setParameter("maQuyDoi", maQuyDoi);
-            if (checkQuery.uniqueResult() != null) {
-                model.addAttribute("error", "Mã quy đổi " + maQuyDoi + " đã tồn tại!");
-                QuyDoiDiemModel formData = new QuyDoiDiemModel();
-                formData.setMaQuyDoi(maQuyDoi);
-                formData.setTenUuDai(tenUuDai);
-                formData.setSoDiemCan(soDiemCan);
-                formData.setLoaiUuDai(loaiUuDai);
-                formData.setGiaTriGiam(giaTriGiam);
-                model.addAttribute("addFormData", formData);
+            Query checkMaQuery = dbSession.createQuery("FROM QuyDoiDiemEntity WHERE maQuyDoi = :maQuyDoi");
+            checkMaQuery.setParameter("maQuyDoi", maQuyDoi);
+            if (checkMaQuery.uniqueResult() != null) {
+                redirectAttributes.addFlashAttribute("error", "Mã quy đổi " + maQuyDoi + " đã tồn tại!");
+                redirectAttributes.addFlashAttribute("addMaQuyDoi", maQuyDoi);
+                redirectAttributes.addFlashAttribute("addTenUuDai", tenUuDai);
+                redirectAttributes.addFlashAttribute("addSoDiemCan", soDiemCan);
+                redirectAttributes.addFlashAttribute("addLoaiUuDai", loaiUuDai);
+                redirectAttributes.addFlashAttribute("addGiaTriGiam", giaTriGiam);
                 dbSession.getTransaction().rollback();
-                return showPointRedemptionManager(1, "all", "all", session, model);
+                return "redirect:/admin/point-redemptions";
+            }
+
+            // Kiểm tra tên ưu đãi trùng
+            Query checkTenQuery = dbSession.createQuery("FROM QuyDoiDiemEntity WHERE tenUuDai = :tenUuDai");
+            checkTenQuery.setParameter("tenUuDai", tenUuDai);
+            if (checkTenQuery.uniqueResult() != null) {
+                redirectAttributes.addFlashAttribute("error", "Tên ưu đãi " + tenUuDai + " đã tồn tại!");
+                redirectAttributes.addFlashAttribute("addMaQuyDoi", maQuyDoi);
+                redirectAttributes.addFlashAttribute("addTenUuDai", tenUuDai);
+                redirectAttributes.addFlashAttribute("addSoDiemCan", soDiemCan);
+                redirectAttributes.addFlashAttribute("addLoaiUuDai", loaiUuDai);
+                redirectAttributes.addFlashAttribute("addGiaTriGiam", giaTriGiam);
+                dbSession.getTransaction().rollback();
+                return "redirect:/admin/point-redemptions";
             }
 
             // Kiểm tra dữ liệu
             if (maQuyDoi == null || maQuyDoi.trim().isEmpty() || tenUuDai == null || tenUuDai.trim().isEmpty() ||
                 soDiemCan <= 0 || giaTriGiam == null || giaTriGiam.compareTo(BigDecimal.ZERO) <= 0) {
-                model.addAttribute("error", "Vui lòng nhập đầy đủ thông tin và giá trị hợp lệ.");
-                QuyDoiDiemModel formData = new QuyDoiDiemModel();
-                formData.setMaQuyDoi(maQuyDoi);
-                formData.setTenUuDai(tenUuDai);
-                formData.setSoDiemCan(soDiemCan);
-                formData.setLoaiUuDai(loaiUuDai);
-                formData.setGiaTriGiam(giaTriGiam);
-                model.addAttribute("addFormData", formData);
+                redirectAttributes.addFlashAttribute("error", "Vui lòng nhập đầy đủ thông tin và giá trị hợp lệ.");
+                redirectAttributes.addFlashAttribute("addMaQuyDoi", maQuyDoi);
+                redirectAttributes.addFlashAttribute("addTenUuDai", tenUuDai);
+                redirectAttributes.addFlashAttribute("addSoDiemCan", soDiemCan);
+                redirectAttributes.addFlashAttribute("addLoaiUuDai", loaiUuDai);
+                redirectAttributes.addFlashAttribute("addGiaTriGiam", giaTriGiam);
                 dbSession.getTransaction().rollback();
-                return showPointRedemptionManager(1, "all", "all", session, model);
+                return "redirect:/admin/point-redemptions";
             }
 
             QuyDoiDiemEntity entity = new QuyDoiDiemEntity();
@@ -172,20 +185,18 @@ public class AdminPointRedemptionController {
 
             dbSession.save(entity);
             dbSession.getTransaction().commit();
-            model.addAttribute("success", "Thêm quy đổi điểm thành công!");
+            redirectAttributes.addFlashAttribute("success", "Thêm quy đổi điểm thành công!");
 
         } catch (Exception e) {
             dbSession.getTransaction().rollback();
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi thêm quy đổi mới: " + e.getMessage());
-            QuyDoiDiemModel formData = new QuyDoiDiemModel();
-            formData.setMaQuyDoi(maQuyDoi);
-            formData.setTenUuDai(tenUuDai);
-            formData.setSoDiemCan(soDiemCan);
-            formData.setLoaiUuDai(loaiUuDai);
-            formData.setGiaTriGiam(giaTriGiam);
-            model.addAttribute("addFormData", formData);
-            return showPointRedemptionManager(1, "all", "all", session, model);
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi thêm quy đổi mới: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("addMaQuyDoi", maQuyDoi);
+            redirectAttributes.addFlashAttribute("addTenUuDai", tenUuDai);
+            redirectAttributes.addFlashAttribute("addSoDiemCan", soDiemCan);
+            redirectAttributes.addFlashAttribute("addLoaiUuDai", loaiUuDai);
+            redirectAttributes.addFlashAttribute("addGiaTriGiam", giaTriGiam);
+            return "redirect:/admin/point-redemptions";
         } finally {
             dbSession.close();
         }
@@ -201,7 +212,8 @@ public class AdminPointRedemptionController {
             @RequestParam("loaiUuDai") String loaiUuDai,
             @RequestParam("giaTriGiam") BigDecimal giaTriGiam,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/admin/auth/login";
         }
@@ -213,9 +225,19 @@ public class AdminPointRedemptionController {
             // Kiểm tra dữ liệu
             if (maQuyDoi == null || maQuyDoi.trim().isEmpty() || tenUuDai == null || tenUuDai.trim().isEmpty() ||
                 soDiemCan <= 0 || giaTriGiam == null || giaTriGiam.compareTo(BigDecimal.ZERO) <= 0) {
-                model.addAttribute("error", "Vui lòng nhập đầy đủ thông tin và giá trị hợp lệ.");
+                redirectAttributes.addFlashAttribute("error", "Vui lòng nhập đầy đủ thông tin và giá trị hợp lệ.");
                 dbSession.getTransaction().rollback();
-                return showPointRedemptionManager(1, "all", "all", session, model);
+                return "redirect:/admin/point-redemptions";
+            }
+
+            // Kiểm tra tên ưu đãi trùng (loại trừ chính bản ghi hiện tại)
+            Query checkTenQuery = dbSession.createQuery("FROM QuyDoiDiemEntity WHERE tenUuDai = :tenUuDai AND maQuyDoi != :maQuyDoi");
+            checkTenQuery.setParameter("tenUuDai", tenUuDai);
+            checkTenQuery.setParameter("maQuyDoi", maQuyDoi);
+            if (checkTenQuery.uniqueResult() != null) {
+                redirectAttributes.addFlashAttribute("error", "Tên ưu đãi " + tenUuDai + " đã tồn tại!");
+                dbSession.getTransaction().rollback();
+                return "redirect:/admin/point-redemptions";
             }
 
             Query query = dbSession.createQuery("FROM QuyDoiDiemEntity WHERE maQuyDoi = :maQuyDoi");
@@ -223,9 +245,9 @@ public class AdminPointRedemptionController {
             QuyDoiDiemEntity entity = (QuyDoiDiemEntity) query.uniqueResult();
 
             if (entity == null) {
-                model.addAttribute("error", "Không tìm thấy quy đổi điểm với mã " + maQuyDoi);
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy quy đổi điểm với mã " + maQuyDoi);
                 dbSession.getTransaction().rollback();
-                return showPointRedemptionManager(1, "all", "all", session, model);
+                return "redirect:/admin/point-redemptions";
             }
 
             entity.setTenUuDai(tenUuDai);
@@ -235,12 +257,12 @@ public class AdminPointRedemptionController {
 
             dbSession.update(entity);
             dbSession.getTransaction().commit();
-            model.addAttribute("success", "Cập nhật quy đổi điểm thành công!");
+            redirectAttributes.addFlashAttribute("success", "Cập nhật quy đổi điểm thành công!");
 
         } catch (Exception e) {
             dbSession.getTransaction().rollback();
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi cập nhật quy đổi điểm: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật quy đổi điểm: " + e.getMessage());
         } finally {
             dbSession.close();
         }
@@ -252,7 +274,8 @@ public class AdminPointRedemptionController {
     public String deletePointRedemption(
             @PathVariable("maQuyDoi") String maQuyDoi,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/admin/auth/login";
         }
@@ -261,24 +284,33 @@ public class AdminPointRedemptionController {
         try {
             dbSession.beginTransaction();
 
+            // Kiểm tra xem quy đổi điểm có được sử dụng trong đơn hàng không
+            Query checkOrderQuery = dbSession.createQuery("FROM DonHangEntity WHERE maQuyDoi = :maQuyDoi");
+            checkOrderQuery.setParameter("maQuyDoi", maQuyDoi);
+            if (checkOrderQuery.uniqueResult() != null) {
+                redirectAttributes.addFlashAttribute("error", "Không thể xóa quy đổi điểm vì đã được sử dụng trong đơn hàng!");
+                dbSession.getTransaction().rollback();
+                return "redirect:/admin/point-redemptions";
+            }
+
             Query query = dbSession.createQuery("FROM QuyDoiDiemEntity WHERE maQuyDoi = :maQuyDoi");
             query.setParameter("maQuyDoi", maQuyDoi);
             QuyDoiDiemEntity entity = (QuyDoiDiemEntity) query.uniqueResult();
 
             if (entity == null) {
-                model.addAttribute("error", "Không tìm thấy quy đổi điểm với mã " + maQuyDoi);
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy quy đổi điểm với mã " + maQuyDoi);
                 dbSession.getTransaction().rollback();
-                return showPointRedemptionManager(1, "all", "all", session, model);
+                return "redirect:/admin/point-redemptions";
             }
 
             dbSession.delete(entity);
             dbSession.getTransaction().commit();
-            model.addAttribute("success", "Xóa quy đổi điểm thành công!");
+            redirectAttributes.addFlashAttribute("success", "Xóa quy đổi điểm thành công!");
 
         } catch (Exception e) {
             dbSession.getTransaction().rollback();
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi xóa quy đổi điểm: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi xóa quy đổi điểm: " + e.getMessage());
         } finally {
             dbSession.close();
         }

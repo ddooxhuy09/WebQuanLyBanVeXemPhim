@@ -13,10 +13,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpSession;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,15 +27,6 @@ public class AdminPaymentController {
     private static final int ITEMS_PER_PAGE = 25; // 25 bản ghi/trang, như AdminOrderController
     private static final int PAGES_TO_SHOW = 5; // Hiển thị 5 trang
 
-    // Hàm tiện ích để ghi log vào file
-    private void logToFile(String message) {
-        try (PrintWriter out = new PrintWriter(Files.newBufferedWriter(
-                Paths.get("logs/app.log"), StandardOpenOption.CREATE, StandardOpenOption.APPEND))) {
-            out.println(String.format("%tF %tT - %s", new Date(), new Date(), message));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     @SuppressWarnings("deprecation")
     @RequestMapping(value = "/payment", method = RequestMethod.GET)
@@ -51,29 +38,19 @@ public class AdminPaymentController {
             @RequestParam(value = "sortBy", required = false, defaultValue = "ngayThanhToan") String sortBy,
             @RequestParam(value = "page", defaultValue = "1") int page) {
 
-        // Log 1: Truy cập endpoint
-        logToFile("Accessing /admin/payment at " + new Date());
 
         // Log 2: Kiểm tra đăng nhập admin
         if (session.getAttribute("loggedInAdmin") == null) {
-            logToFile("No admin logged in, redirecting to /admin/login");
             return "redirect:/admin/login";
         }
-        logToFile("Admin logged in: " + session.getAttribute("loggedInAdmin"));
-
-        // Log 3: Tham số đầu vào
-        logToFile(String.format("Filter parameters - maDonHang: %s, phuongThuc: %s, sortBy: %s, page: %d",
-                filterMaDonHang, filterPhuongThuc, sortBy, page));
 
         Session dbSession = null;
         try {
             // Log 4: Kiểm tra sessionFactory
             if (sessionFactory == null) {
-                logToFile("SessionFactory is null!");
                 model.addAttribute("error", "Lỗi: SessionFactory không được khởi tạo!");
                 return "admin/payment_manager";
             }
-            logToFile("Opening Hibernate session");
             dbSession = sessionFactory.openSession();
 
             // Xây dựng HQL để đếm tổng số bản ghi
@@ -118,9 +95,6 @@ public class AdminPaymentController {
                 sortBy = "ngayThanhToan";
             }
 
-            // Log 5: Truy vấn HQL
-            logToFile("HQL Query: " + hql.toString() + ", Params: " + params + ", Values: " + values);
-
             Query query = dbSession.createQuery(hql.toString());
             for (int i = 0; i < params.size(); i++) {
                 query.setParameter(params.get(i), values.get(i));
@@ -130,18 +104,15 @@ public class AdminPaymentController {
 
             @SuppressWarnings("unchecked")
             List<ThanhToanEntity> thanhToanEntities = (List<ThanhToanEntity>) query.list();
-            logToFile("Retrieved " + thanhToanEntities.size() + " ThanhToanEntity records");
 
             List<ThanhToanModel> thanhToanModels = new ArrayList<>();
             for (ThanhToanEntity entity : thanhToanEntities) {
                 try {
                     thanhToanModels.add(new ThanhToanModel(entity));
                 } catch (Exception e) {
-                    logToFile("Error converting ThanhToanEntity to ThanhToanModel: " + e.getMessage());
                     model.addAttribute("error", "Lỗi khi chuyển đổi entity sang model: " + e.getMessage());
                 }
             }
-            logToFile("Converted to " + thanhToanModels.size() + " ThanhToanModel records");
 
             // Tính phạm vi trang hiển thị
             List<Integer> pageRange = new ArrayList<>();
@@ -161,17 +132,12 @@ public class AdminPaymentController {
             model.addAttribute("pageRange", pageRange);
 
         } catch (Exception e) {
-            logToFile("Error retrieving payment list: " + e.getMessage());
             model.addAttribute("error", "Lỗi khi lấy danh sách thanh toán: " + e.getMessage());
         } finally {
             if (dbSession != null && dbSession.isOpen()) {
-                logToFile("Closing Hibernate session");
                 dbSession.close();
             }
         }
-
-        // Log 6: Trả về view
-        logToFile("Returning view: admin/payment_manager");
         return "admin/payment_manager";
     }
 }

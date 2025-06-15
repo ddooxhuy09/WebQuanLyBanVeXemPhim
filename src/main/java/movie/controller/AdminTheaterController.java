@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
@@ -47,7 +48,6 @@ public class AdminTheaterController {
 
             // Lấy danh sách tất cả rạp chiếu
             Query allRapQuery = dbSession.createQuery("FROM RapChieuEntity");
-            @SuppressWarnings("unchecked")
             List<RapChieuEntity> rapEntities = (List<RapChieuEntity>) allRapQuery.list();
             List<RapChieuModel> rapModels = new ArrayList<>();
             for (RapChieuEntity entity : rapEntities) {
@@ -68,6 +68,85 @@ public class AdminTheaterController {
         return "admin/theater_manager";
     }
 
+    // Hàm validate input cho thêm và sửa rạp
+    private List<String> validateTheaterInput(Session dbSession, String maRapChieu, String tenRapChieu, String diaChi, String soDienThoaiLienHe, boolean isUpdate) {
+        List<String> errors = new ArrayList<>();
+
+        // Kiểm tra rỗng
+        if (maRapChieu == null || maRapChieu.trim().isEmpty()) {
+            errors.add("Mã rạp không được để trống.");
+        }
+        if (tenRapChieu == null || tenRapChieu.trim().isEmpty()) {
+            errors.add("Tên rạp không được để trống.");
+        }
+        if (diaChi == null || diaChi.trim().isEmpty()) {
+            errors.add("Địa chỉ không được để trống.");
+        }
+        if (soDienThoaiLienHe == null || !soDienThoaiLienHe.matches("\\d{10}")) {
+            errors.add("Số điện thoại phải gồm đúng 10 chữ số.");
+        }
+
+        // Kiểm tra trùng lặp
+        if (errors.isEmpty()) { // Chỉ kiểm tra trùng nếu không có lỗi rỗng hoặc định dạng
+            String hql = isUpdate ?
+                    "FROM RapChieuEntity WHERE maRapChieu != :maRap AND (:tenRap = tenRapChieu OR :diaChi = diaChi OR :sdt = soDienThoaiLienHe)" :
+                    "FROM RapChieuEntity WHERE :tenRap = tenRapChieu OR :diaChi = diaChi OR :sdt = soDienThoaiLienHe";
+            Query query = dbSession.createQuery(hql);
+            if (isUpdate) {
+                query.setParameter("maRap", maRapChieu);
+            }
+            query.setParameter("tenRap", tenRapChieu.trim());
+            query.setParameter("diaChi", diaChi.trim());
+            query.setParameter("sdt", soDienThoaiLienHe);
+            if (!query.list().isEmpty()) {
+                // Kiểm tra từng trường cụ thể
+                if (isUpdate) {
+                    hql = "FROM RapChieuEntity WHERE maRapChieu != :maRap AND tenRapChieu = :tenRap";
+                } else {
+                    hql = "FROM RapChieuEntity WHERE tenRapChieu = :tenRap";
+                }
+                query = dbSession.createQuery(hql);
+                if (isUpdate) {
+                    query.setParameter("maRap", maRapChieu);
+                }
+                query.setParameter("tenRap", tenRapChieu.trim());
+                if (!query.list().isEmpty()) {
+                    errors.add("Tên rạp đã tồn tại.");
+                }
+
+                if (isUpdate) {
+                    hql = "FROM RapChieuEntity WHERE maRapChieu != :maRap AND diaChi = :diaChi";
+                } else {
+                    hql = "FROM RapChieuEntity WHERE diaChi = :diaChi";
+                }
+                query = dbSession.createQuery(hql);
+                if (isUpdate) {
+                    query.setParameter("maRap", maRapChieu);
+                }
+                query.setParameter("diaChi", diaChi.trim());
+                if (!query.list().isEmpty()) {
+                    errors.add("Địa chỉ đã tồn tại.");
+                }
+
+                if (isUpdate) {
+                    hql = "FROM RapChieuEntity WHERE maRapChieu != :maRap AND soDienThoaiLienHe = :sdt";
+                } else {
+                    hql = "FROM RapChieuEntity WHERE soDienThoaiLienHe = :sdt";
+                }
+                query = dbSession.createQuery(hql);
+                if (isUpdate) {
+                    query.setParameter("maRap", maRapChieu);
+                }
+                query.setParameter("sdt", soDienThoaiLienHe);
+                if (!query.list().isEmpty()) {
+                    errors.add("Số điện thoại đã tồn tại.");
+                }
+            }
+        }
+
+        return errors;
+    }
+
     // Thêm rạp chiếu mới
     @Transactional
     @RequestMapping(value = "/theaters/add", method = RequestMethod.POST)
@@ -77,63 +156,41 @@ public class AdminTheaterController {
             @RequestParam("diaChi") String diaChi,
             @RequestParam("soDienThoaiLienHe") String soDienThoaiLienHe,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
 
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/admin/auth/login";
         }
 
         Session dbSession = sessionFactory.getCurrentSession();
-        List<String> errors = new ArrayList<>();
 
-        // Lưu dữ liệu người dùng nhập để hiển thị lại nếu có lỗi
-        model.addAttribute("tenRapChieu", tenRapChieu);
-        model.addAttribute("diaChi", diaChi);
-        model.addAttribute("soDienThoaiLienHe", soDienThoaiLienHe);
-        model.addAttribute("newMaRapChieu", maRapChieu);
+        // Validate input
+        List<String> errors = validateTheaterInput(dbSession, maRapChieu, tenRapChieu, diaChi, soDienThoaiLienHe, false);
 
-        // Kiểm tra định dạng SĐT
-        if (soDienThoaiLienHe == null || !soDienThoaiLienHe.matches("\\d{10}")) {
-            errors.add("Số điện thoại phải gồm đúng 10 chữ số.");
-        }
-
-        // Kiểm tra trùng tên rạp, địa chỉ hoặc SĐT
-        Query query = dbSession.createQuery("FROM RapChieuEntity WHERE tenRapChieu = :tenRap OR diaChi = :diaChi OR soDienThoaiLienHe = :sdt");
-        query.setParameter("tenRap", tenRapChieu);
-        query.setParameter("diaChi", diaChi);
-        query.setParameter("sdt", soDienThoaiLienHe);
-
-        if (!query.list().isEmpty()) {
-            errors.add("Tên rạp, địa chỉ hoặc số điện thoại đã tồn tại.");
-        }
-
-        // Nếu có lỗi, thêm vào model và trả về form
+        // Nếu có lỗi, redirect và lưu dữ liệu đã nhập
         if (!errors.isEmpty()) {
-            model.addAttribute("error", String.join(" ", errors));
-            loadTheaterData(model, dbSession);
-            return "admin/theater_manager";
+            redirectAttributes.addFlashAttribute("error", String.join(" ", errors));
+            redirectAttributes.addFlashAttribute("tenRapChieu", tenRapChieu);
+            redirectAttributes.addFlashAttribute("diaChi", diaChi);
+            redirectAttributes.addFlashAttribute("soDienThoaiLienHe", soDienThoaiLienHe);
+            redirectAttributes.addFlashAttribute("newMaRapChieu", maRapChieu);
+            return "redirect:/admin/theaters";
         }
 
         // Lưu dữ liệu nếu không có lỗi
-        RapChieuEntity rap = new RapChieuEntity();
-        rap.setMaRapChieu(maRapChieu);
-        rap.setTenRapChieu(tenRapChieu);
-        rap.setDiaChi(diaChi);
-        rap.setSoDienThoaiLienHe(soDienThoaiLienHe);
-
-        dbSession.save(rap);
-
-        return "redirect:/admin/theaters";
-    }
-
-    // Hiển thị modal sửa rạp chiếu (trong thực tế, JSP đã xử lý qua JavaScript)
-    @RequestMapping(value = "/theaters/edit/{maRapChieu}", method = RequestMethod.GET)
-    public String showEditTheaterForm(@PathVariable("maRapChieu") String maRapChieu, HttpSession session, Model model) {
-        if (session.getAttribute("loggedInAdmin") == null) {
-            return "redirect:/admin/auth/login";
+        try {
+            RapChieuEntity rap = new RapChieuEntity();
+            rap.setMaRapChieu(maRapChieu);
+            rap.setTenRapChieu(tenRapChieu.trim());
+            rap.setDiaChi(diaChi.trim());
+            rap.setSoDienThoaiLienHe(soDienThoaiLienHe);
+            dbSession.save(rap);
+            redirectAttributes.addFlashAttribute("success", "Thêm rạp " + tenRapChieu.trim() + " thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi thêm rạp: " + e.getMessage());
         }
 
-        // Modal đã được xử lý trong JSP, nên chỉ cần load lại trang
         return "redirect:/admin/theaters";
     }
 
@@ -146,107 +203,56 @@ public class AdminTheaterController {
             @RequestParam("diaChi") String diaChi,
             @RequestParam("soDienThoaiLienHe") String soDienThoaiLienHe,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
 
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/admin/auth/login";
         }
 
         Session dbSession = sessionFactory.getCurrentSession();
-        List<String> errors = new ArrayList<>();
 
+        // Kiểm tra rạp tồn tại
+        RapChieuEntity rap = (RapChieuEntity) dbSession.get(RapChieuEntity.class, maRapChieu);
+        if (rap == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy rạp chiếu với mã " + maRapChieu);
+            return "redirect:/admin/theaters";
+        }
+
+        // Validate input
+        List<String> errors = validateTheaterInput(dbSession, maRapChieu, tenRapChieu, diaChi, soDienThoaiLienHe, true);
+
+        // Nếu có lỗi, redirect và lưu dữ liệu đã nhập
+        if (!errors.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", String.join(" ", errors));
+            redirectAttributes.addFlashAttribute("tenRapChieu_edit", tenRapChieu);
+            redirectAttributes.addFlashAttribute("diaChi_edit", diaChi);
+            redirectAttributes.addFlashAttribute("soDienThoaiLienHe_edit", soDienThoaiLienHe);
+            redirectAttributes.addFlashAttribute("maRapChieu_edit", maRapChieu);
+            return "redirect:/admin/theaters";
+        }
+
+        // Lưu nếu không có lỗi
         try {
-            Object result = dbSession.get(RapChieuEntity.class, maRapChieu);
-            if (result == null) {
-                errors.add("Không tìm thấy rạp chiếu với mã " + maRapChieu);
-                model.addAttribute("error", String.join(" ", errors));
-                loadTheaterData(model, dbSession);
-                return "admin/theater_manager";
-            }
-            RapChieuEntity rap = (RapChieuEntity) result;
-
-            // Kiểm tra trùng lặp
-            Query query = dbSession.createQuery(
-                    "FROM RapChieuEntity WHERE (tenRapChieu = :tenRap OR diaChi = :diaChi OR soDienThoaiLienHe = :sdt) AND maRapChieu != :maRap");
-            query.setParameter("tenRap", tenRapChieu);
-            query.setParameter("diaChi", diaChi);
-            query.setParameter("sdt", soDienThoaiLienHe);
-            query.setParameter("maRap", maRapChieu);
-
-            if (!query.list().isEmpty()) {
-                errors.add("Tên rạp, địa chỉ hoặc số điện thoại đã tồn tại.");
-            }
-
-            // Kiểm tra định dạng SĐT
-            if (soDienThoaiLienHe == null || !soDienThoaiLienHe.matches("\\d{10}")) {
-                errors.add("Số điện thoại phải gồm đúng 10 chữ số.");
-            }
-
-            // Nếu có lỗi, trả về form và giữ lại dữ liệu người dùng đã nhập
-            if (!errors.isEmpty()) {
-                model.addAttribute("error", String.join(" ", errors));
-                model.addAttribute("tenRapChieu_edit", tenRapChieu);
-                model.addAttribute("diaChi_edit", diaChi);
-                model.addAttribute("soDienThoaiLienHe_edit", soDienThoaiLienHe);
-                model.addAttribute("maRapChieu_edit", maRapChieu);
-                loadTheaterData(model, dbSession);
-                return "admin/theater_manager";
-            }
-
-            // Lưu nếu không có lỗi
-            rap.setTenRapChieu(tenRapChieu);
-            rap.setDiaChi(diaChi);
+            rap.setTenRapChieu(tenRapChieu.trim());
+            rap.setDiaChi(diaChi.trim());
             rap.setSoDienThoaiLienHe(soDienThoaiLienHe);
             dbSession.update(rap);
-
-            return "redirect:/admin/theaters";
-
+            redirectAttributes.addFlashAttribute("success", "Cập nhật rạp " + tenRapChieu.trim() + " thành công!");
         } catch (Exception e) {
-            e.printStackTrace();
-            errors.add("Lỗi khi cập nhật rạp chiếu: " + e.getMessage());
-            model.addAttribute("error", String.join(" ", errors));
-            loadTheaterData(model, dbSession);
-            return "admin/theater_manager";
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật rạp: " + e.getMessage());
         }
-    }
 
-    // Hàm hỗ trợ load lại dữ liệu cho JSP
-    private void loadTheaterData(Model model, Session dbSession) {
-        try {
-            // Lấy lại danh sách rạp chiếu
-            Query allRapQuery = dbSession.createQuery("FROM RapChieuEntity");
-            @SuppressWarnings("unchecked")
-            List<RapChieuEntity> rapEntities = (List<RapChieuEntity>) allRapQuery.list();
-            List<RapChieuModel> rapModels = new ArrayList<>();
-            for (RapChieuEntity entity : rapEntities) {
-                rapModels.add(new RapChieuModel(entity));
-            }
-
-            // Lấy mã rạp mới nhất
-            Query query = dbSession.createQuery("FROM RapChieuEntity ORDER BY maRapChieu DESC");
-            query.setMaxResults(1);
-            RapChieuEntity latestRap = (RapChieuEntity) query.uniqueResult();
-
-            String newMaRapChieu;
-            if (latestRap == null) {
-                newMaRapChieu = "RC001";
-            } else {
-                String lastMaRap = latestRap.getMaRapChieu();
-                int lastId = Integer.parseInt(lastMaRap.substring(2));
-                newMaRapChieu = String.format("RC%03d", lastId + 1);
-            }
-
-            model.addAttribute("rapChieuList", rapModels);
-            model.addAttribute("newMaRapChieu", newMaRapChieu);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        return "redirect:/admin/theaters";
     }
 
     // Xóa rạp chiếu
     @Transactional
     @RequestMapping(value = "/theaters/delete/{maRapChieu}", method = RequestMethod.GET)
-    public String deleteTheater(@PathVariable("maRapChieu") String maRapChieu, HttpSession session, Model model) {
+    public String deleteTheater(
+            @PathVariable("maRapChieu") String maRapChieu,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/admin/auth/login";
         }
@@ -255,17 +261,27 @@ public class AdminTheaterController {
             Session dbSession = sessionFactory.getCurrentSession();
             RapChieuEntity rap = (RapChieuEntity) dbSession.get(RapChieuEntity.class, maRapChieu);
 
-            if (rap != null) {
-                dbSession.delete(rap);
-            } else {
-                model.addAttribute("error", "Không tìm thấy rạp chiếu với mã " + maRapChieu);
+            if (rap == null) {
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy rạp chiếu với mã " + maRapChieu);
+                return "redirect:/admin/theaters";
             }
 
-            return "redirect:/admin/theaters";
+            // Kiểm tra xem rạp có phòng chiếu không
+            Query query = dbSession.createQuery("FROM PhongChieuEntity WHERE rapChieu.maRapChieu = :maRap");
+            query.setParameter("maRap", maRapChieu);
+            List<?> phongChieuList = query.list();
+            if (!phongChieuList.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Không thể xóa rạp " + rap.getTenRapChieu() + " vì vẫn còn phòng chiếu liên kết.");
+                return "redirect:/admin/theaters";
+            }
+
+            // Xóa rạp nếu không có phòng chiếu liên kết
+            dbSession.delete(rap);
+            redirectAttributes.addFlashAttribute("success", "Xóa rạp " + rap.getTenRapChieu() + " thành công!");
         } catch (Exception e) {
-            e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi xóa rạp chiếu: " + e.getMessage());
-            return "redirect:/admin/theaters";
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi xóa rạp: " + e.getMessage());
         }
+
+        return "redirect:/admin/theaters";
     }
 }

@@ -115,12 +115,12 @@
                                 </span>
                             </p>
                             <p><strong>Định dạng:</strong>
-                                <span id="movie-dinhDang">
-                                    <c:forEach var="dinhDang" items="${phim.maDinhDangs}" varStatus="loop">
-                                        ${dinhDang}<c:if test="${!loop.last}">,</c:if>
-                                    </c:forEach>
-                                </span>
-                            </p>
+							    <span id="movie-dinhDang">
+							        <c:forEach var="dinhDang" items="${phim.dinhDangs}" varStatus="loop">
+							            ${dinhDang.tenDinhDang}<c:if test="${!loop.last}">,</c:if>
+							        </c:forEach>
+							    </span>
+							</p>
                             <p><strong>Khởi chiếu:</strong> <span id="movie-release"><fmt:formatDate value="${phim.ngayKhoiChieu}" pattern="dd/MM/yyyy" /></span></p>
                         </div>
                     </div>

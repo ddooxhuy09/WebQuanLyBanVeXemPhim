@@ -49,4 +49,10 @@ public class KhachHangModel {
     public void setNgayDangKy(Date ngayDangKy) { this.ngayDangKy = ngayDangKy; }
     public int getTongDiem() { return tongDiem; }
     public void setTongDiem(int tongDiem) { this.tongDiem = tongDiem; }
+
+    // Thêm phương thức để ghép họ và tên
+    public String getHoVaTen() {
+        return (hoKhachHang != null ? hoKhachHang + " " : "")
+                + (tenKhachHang != null ? tenKhachHang : "N/A");
+    }
 }

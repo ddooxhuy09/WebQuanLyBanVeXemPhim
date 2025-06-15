@@ -3,9 +3,9 @@ package movie.config;
 import javax.servlet.http.HttpServletRequest;
 
 public class VNPayConfig {
-    public static final String vnp_TmnCode = ""; 
-    public static final String vnp_HashSecret = "";
-    public static final String vnp_Url = "";
+	public static final String vnp_TmnCode = "8LOX36Y3"; 
+    public static final String vnp_HashSecret = "ASDLOP3CSDTZ2ZJ921UBFHAFF6YFY8EM";
+    public static final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
     
     // Phương thức để tạo URL động dựa trên context path
     public static String getReturnUrl(HttpServletRequest request) {

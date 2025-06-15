@@ -3,49 +3,69 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <!-- Danh Sách Phụ Thu -->
-    <div class="header">
-        <h2>Danh Sách Phụ Thu</h2>
-        <div class="add-btn-container">
-            <button class="custom-btn" onclick="showAddModal()">Thêm Phụ Thu</button>
-        </div>
+<div class="header">
+    <h2>Danh Sách Phụ Thu</h2>
+    <div class="add-btn-container">
+        <button class="custom-btn" onclick="showAddModal()">Thêm Phụ Thu</button>
     </div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Mã Phụ Thu</th>
-                    <th>Tên Phụ Thu</th>
-                    <th>Giá (VNĐ)</th>
-                    <th>Hành Động</th>
-                </tr>
-            </thead>
-            <tbody id="surchargeList">
-                <c:choose>
-                    <c:when test="${empty phuThuList}">
-                        <tr class="no-data">
-                            <td colspan="4" class="no-data">Không có dữ liệu</td>
-                        </tr>
-                    </c:when>
-                    <c:otherwise>
-                        <c:forEach var="pt" items="${phuThuList}">
-                            <tr data-surcharge-id="${pt.maPhuThu}">
-                                <td data-field="maPhuThu">${pt.maPhuThu}</td>
-                                <td data-field="tenPhuThu">${pt.tenPhuThu}</td>
-                                <td data-field="gia" class="currency"><fmt:formatNumber value="${pt.gia}" type="number" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/>đ</td>
-                                <td>
-                                    <button class="custom-btn btn-sm mr-1" onclick="showEditModal(this)">Sửa</button>
-                                    <a href="${pageContext.request.contextPath}/admin/surcharges/delete/${pt.maPhuThu}" 
-                                       class="custom-btn btn-sm" 
-                                       onclick="return confirm('Bạn có chắc muốn xóa phụ thu ${pt.maPhuThu} không?');">Xóa</a>
-                                </td>
-                            </tr>
-                        </c:forEach>
-                    </c:otherwise>
-                </c:choose>
-            </tbody>
-        </table>
-    </div>
+</div>
 
+<!-- Search Form -->
+<div class="search-form-container mb-3">
+    <form action="${pageContext.request.contextPath}/admin/surcharges" method="get" class="form-inline">
+        <div class="input-group">
+            <input type="text" name="search" id="searchInput" class="form-control" placeholder="Tìm kiếm theo tên phụ thu..." value="${search}">
+            <div class="input-group-append">
+                <button type="submit" class="custom-btn">Tìm kiếm</button>
+                <button type="button" class="custom-btn" onclick="clearSearch()">Xóa</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Error and Success Messages -->
+<c:if test="${not empty error}">
+    <div class="alert alert-danger" id="errorMessage">${error}</div>
+</c:if>
+<c:if test="${not empty success}">
+    <div class="alert alert-success" id="successMessage">${success}</div>
+</c:if>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Mã Phụ Thu</th>
+                <th>Tên Phụ Thu</th>
+                <th>Giá (VNĐ)</th>
+                <th>Hành Động</th>
+            </tr>
+        </thead>
+        <tbody id="surchargeList">
+            <c:choose>
+                <c:when test="${empty phuThuList}">
+                    <tr class="no-data">
+                        <td colspan="4" class="no-data">Không có dữ liệu</td>
+                    </tr>
+                </c:when>
+                <c:otherwise>
+                    <c:forEach var="pt" items="${phuThuList}">
+                        <tr data-surcharge-id="${pt.maPhuThu}">
+                            <td data-field="maPhuThu">${pt.maPhuThu}</td>
+                            <td data-field="tenPhuThu">${pt.tenPhuThu}</td>
+                            <td data-field="gia" class="currency"><fmt:formatNumber value="${pt.gia}" type="number" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/>đ</td>
+                            <td>
+                                <button class="custom-btn btn-sm mr-1" onclick="showEditModal(this)">Sửa</button>
+                                <a href="${pageContext.request.contextPath}/admin/surcharges/delete/${pt.maPhuThu}" 
+                                   class="custom-btn btn-sm" 
+                                   onclick="return confirm('Bạn có chắc muốn xóa phụ thu ${pt.maPhuThu} không?');">Xóa</a>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                </c:otherwise>
+            </c:choose>
+        </tbody>
+    </table>
+</div>
 
 <!-- Modal Thêm Phụ Thu -->
 <div class="modal" id="addModal" style="display: none;">
@@ -54,15 +74,15 @@
         <form id="addForm" action="${pageContext.request.contextPath}/admin/surcharges/add" method="post">
             <div class="detail-field">
                 <label for="addMaPhuThu">Mã Phụ Thu</label>
-                <input type="text" id="addMaPhuThu" name="maPhuThu" class="form-control" value="${newMaPhuThu}" readonly>
+                <input type="text" id="addMaPhuThu" name="maPhuThu" class="form-control" value="${addMaPhuThu != null ? addMaPhuThu : newMaPhuThu}" readonly>
             </div>
             <div class="detail-field">
                 <label for="addTenPhuThu">Tên Phụ Thu</label>
-                <input type="text" id="addTenPhuThu" name="tenPhuThu" class="form-control" placeholder="VD: Phụ thu cuối tuần" value="${addFormData != null ? addFormData.tenPhuThu : ''}">
+                <input type="text" id="addTenPhuThu" name="tenPhuThu" class="form-control" placeholder="VD: Phụ thu cuối tuần" value="${addTenPhuThu}">
             </div>
             <div class="detail-field">
                 <label for="addGia">Giá (VNĐ)</label>
-                <input type="text" id="addGia" name="gia" class="form-control" placeholder="VD: 15,000" value="${addFormData != null ? addFormData.gia : ''}">
+                <input type="text" id="addGia" name="gia" class="form-control" placeholder="VD: 15,000" value="${addGia}">
             </div>
             <div class="modal-actions">
                 <button type="submit" class="custom-btn">Thêm</button>
@@ -97,14 +117,6 @@
     </div>
 </div>
 
-<!-- Error and Success Messages -->
-<c:if test="${not empty error}">
-    <div class="alert alert-danger" id="errorMessage">${error}</div>
-</c:if>
-<c:if test="${not empty success}">
-    <div class="alert alert-success" id="successMessage">${success}</div>
-</c:if>
-
 <!-- JavaScript -->
 <script src="${pageContext.request.contextPath}/resources/admin/js/number-utils.js"></script>
 <script src="${pageContext.request.contextPath}/resources/admin/js/currency-utils.js"></script>
@@ -130,6 +142,11 @@
 
     function closeAddModal() {
         document.getElementById('addModal').style.display = 'none';
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        window.location.href = '${pageContext.request.contextPath}/admin/surcharges';
     }
 
     function validateAddForm(form) {
@@ -238,10 +255,11 @@
         }
 
         // Hiển thị modal thêm nếu có lỗi từ server
-        <c:if test="${addFormData != null}">
+        <c:if test="${addTenPhuThu != null || addGia != null}">
             document.getElementById('addModal').style.display = 'flex';
-            document.getElementById('addTenPhuThu').value = '${addFormData.tenPhuThu}';
-            document.getElementById('addGia').value = formatCurrencyWithDecimal('${addFormData.gia}');
+            document.getElementById('addMaPhuThu').value = '${addMaPhuThu != null ? addMaPhuThu : newMaPhuThu}';
+            document.getElementById('addTenPhuThu').value = '${addTenPhuThu}';
+            document.getElementById('addGia').value = ${addGia != null ? 'formatCurrencyWithDecimal(' + addGia + ')' : "''"};
         </c:if>
 
         // Ẩn thông báo sau 5 giây

@@ -2,6 +2,7 @@ package movie.entity;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -24,10 +25,12 @@ public class ComboEntity {
     private String urlHinhAnh;
 
     @OneToMany(mappedBy = "combo", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ChiTietComboEntity> chiTietCombos;
+    private List<ChiTietComboEntity> chiTietCombos = new ArrayList<>(); // Khởi tạo ngay
 
     // Constructors
-    public ComboEntity() {}
+    public ComboEntity() {
+        this.chiTietCombos = new ArrayList<>(); // Đảm bảo khởi tạo
+    }
 
     // Getters and Setters
     public String getMaCombo() { return maCombo; }

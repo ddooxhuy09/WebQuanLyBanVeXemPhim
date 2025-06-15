@@ -52,13 +52,11 @@
 /*Trang phòng chiếu*/
 
 .seat-grid-container {
-    width: fit-content; /* Chiều rộng vừa đủ để chứa nội dung của .seat-grid */
-    max-width: 100%; /* Không vượt quá container cha */
-    /* overflow-x: auto;  */
-    margin: 0 auto; /* Căn giữa */
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
 }
 
-/* Điều chỉnh .screen để khớp với chiều rộng của container */
 .screen {
     background-color: black;
     color: white;
@@ -67,19 +65,17 @@
     font-weight: bold;
     margin: 0.75rem 0;
     font-size: 0.9rem;
-    width: 100%; /* Khớp với chiều rộng của container */
-     /* Đảm bảo padding không làm tăng chiều rộng */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .seat-row {
     display: flex;
     align-items: center;
-    width: max-content; /* Vẫn giữ để hàng đủ rộng cho nội dung */
-    min-width: 100%; /* Đảm bảo không nhỏ hơn container */
-    
+    width: max-content;
+    min-width: 100%;
 }
 
-/* Điều chỉnh .seat-grid */
 .seat-grid {
     display: flex;
     flex-direction: column;
@@ -87,13 +83,12 @@
     border: 1px solid var(--text-color-light);
     padding: 0.5rem;
     max-width: 100%;
-    width: 100%; /* Khớp với chiều rộng của container */
-    
+    width: 100%;
 }
 
 .seat-cell.label {
     width: 2.5rem;
-    height: 1.75rem; /* Đồng bộ với .seat-cell */
+    height: 1.75rem;
     background: #F5F6FA;
     font-weight: 600;
     cursor: default;
@@ -101,10 +96,11 @@
     align-items: center;
     justify-content: center;
 }
+
 .seat-cell {
     width: 2.5rem;
     height: 1.75rem;
-    border: 1px solid var(--accent-color);
+    border: 1px solid var(--accent-color); /* Viền cố định cho mọi ô */
     margin: 1px;
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -118,37 +114,20 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-     /* Thêm để tính border và margin */
-}
-
-.seat-cell.label {
-    width: 2.5rem;
-    background: #F5F6FA; /* Nền nhạt cho nhãn */
-    font-weight: 600;
-    cursor: default;
+    box-sizing: border-box; /* Đảm bảo border và margin được tính vào kích thước */
 }
 
 .seat-cell.empty {
-    border: none;
-    background: transparent;
-    width: 2.5rem; /* Match seat width */
+    background: transparent; /* Chỉ thay đổi màu nền */
+    /* Xóa border: none để giữ viền từ .seat-cell */
 }
 
 .seat-cell:hover {
     background-color: var(--hover-color);
 }
-.seat-cell.dragging {
-    opacity: 0.7; /* Hiệu ứng mờ để phân biệt khi kéo */
-}
 
-.screen {
-    background-color: black;
-    color: white;
-    padding: 0.25rem;
-    text-align: center;
-    font-weight: bold;
-    margin: 0.75rem 0;
-    font-size: 0.9rem;
+.seat-cell.dragging {
+    opacity: 0.7;
 }
 
 /* Bảng chỉnh sửa */

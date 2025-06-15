@@ -25,7 +25,6 @@ public class AdminOrderController {
     private static final int ITEMS_PER_PAGE = 25; // Tăng lên 25 để hiển thị nhiều hơn
     private static final int PAGES_TO_SHOW = 5; // Giữ số trang hiển thị là 5
 
-    @SuppressWarnings("deprecation")
     @RequestMapping(value = "/orders", method = RequestMethod.GET)
     public String showOrderManager(
             @RequestParam(value = "page", defaultValue = "1") int page,
@@ -87,7 +86,8 @@ public class AdminOrderController {
                     .map(d -> {
                         DonHangModel donHangModel = new DonHangModel(d);
                         if (d.getKhachHang() != null) {
-                            donHangModel.setKhachHang(new KhachHangModel(d.getKhachHang()));
+                            KhachHangModel khachHangModel = new KhachHangModel(d.getKhachHang());
+                            donHangModel.setKhachHang(khachHangModel);
                         }
                         return donHangModel;
                     })
@@ -130,7 +130,6 @@ public class AdminOrderController {
         return "admin/order_manager";
     }
 
-    @SuppressWarnings("deprecation")
     @RequestMapping(value = "/orders/detail/{maDonHang}", method = RequestMethod.GET)
     public String getOrderDetail(
             @PathVariable("maDonHang") String maDonHang,
@@ -188,7 +187,8 @@ public class AdminOrderController {
                     .map(d -> {
                         DonHangModel donHangModel = new DonHangModel(d);
                         if (d.getKhachHang() != null) {
-                            donHangModel.setKhachHang(new KhachHangModel(d.getKhachHang()));
+                            KhachHangModel khachHangModel = new KhachHangModel(d.getKhachHang());
+                            donHangModel.setKhachHang(khachHangModel);
                         }
                         return donHangModel;
                     })
@@ -228,6 +228,7 @@ public class AdminOrderController {
 
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
             SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+            Date currentDate = new Date(); // Ngày hiện tại: 14/06/2025, 4:20 PM +07
 
             for (VeEntity ve : veList) {
                 Map<String, String> ticket = new HashMap<>();
@@ -238,8 +239,19 @@ public class AdminOrderController {
                 if (ghe != null) {
                     ticket.put("thongTinGhe", ghe.getTenHang() + ghe.getSoGhe());
                     ticket.put("loaiGhe", ghe.getLoaiGhe() != null ? ghe.getLoaiGhe().getTenLoaiGhe() : "N/A");
-                    ticket.put("giaTien", ve.getGiaVe().toString() + " VNĐ");
+                    ticket.put("giaTien", ve.getGiaVe() != null ? ve.getGiaVe().toString() : "0");
                     tickets.add(ticket);
+                }
+            }
+
+            // Lấy mã code của khuyến mãi
+            String maCode = "Không có";
+            if (donHang.getMaKhuyenMai() != null) {
+                Query khuyenMaiQuery = dbSession.createQuery("FROM KhuyenMaiEntity km WHERE km.maKhuyenMai = :maKhuyenMai");
+                khuyenMaiQuery.setParameter("maKhuyenMai", donHang.getMaKhuyenMai());
+                KhuyenMaiEntity khuyenMai = (KhuyenMaiEntity) khuyenMaiQuery.uniqueResult();
+                if (khuyenMai != null) {
+                    maCode = khuyenMai.getMaCode() != null ? khuyenMai.getMaCode() : "Không có";
                 }
             }
 
@@ -251,19 +263,30 @@ public class AdminOrderController {
             comboQuery.setParameter("maDonHang", maDonHang);
             List<ChiTietDonHangComboEntity> comboList = comboQuery.list();
 
-            for (ChiTietDonHangComboEntity combo : comboList) {
+            for (ChiTietDonHangComboEntity comboOrder : comboList) {
                 Map<String, String> comboMap = new HashMap<>();
                 Query comboEntityQuery = dbSession.createQuery("FROM ComboEntity WHERE maCombo = :maCombo");
-                comboEntityQuery.setParameter("maCombo", combo.getMaCombo());
-                ComboEntity comboEntity = (ComboEntity) comboEntityQuery.uniqueResult();
+                comboEntityQuery.setParameter("maCombo", comboOrder.getMaCombo());
+                ComboEntity combo = (ComboEntity) comboEntityQuery.uniqueResult();
 
-                if (comboEntity != null) {
-                    comboMap.put("tenDichVu", comboEntity.getTenCombo());
-                    comboMap.put("soLuong", String.valueOf(combo.getSoLuong()));
-                    comboMap.put("donGia", comboEntity.getGiaCombo().toString() + " VNĐ");
-                    BigDecimal tongTienCombo = comboEntity.getGiaCombo().multiply(new BigDecimal(combo.getSoLuong()));
-                    comboMap.put("tongTien", tongTienCombo.toString() + " VNĐ");
-                    comboTotal = comboTotal.add(tongTienCombo);
+                if (combo != null) {
+                    comboMap.put("tenDichVu", combo.getTenCombo());
+                    comboMap.put("soLuong", String.valueOf(comboOrder.getSoLuong()));
+                    
+                    // Tính tổng giá combo dựa trên ChiTietComboEntity
+                    BigDecimal comboPrice = BigDecimal.ZERO;
+                    Query chiTietComboQuery = dbSession.createQuery("FROM ChiTietComboEntity ctc WHERE ctc.combo.maCombo = :maCombo");
+                    chiTietComboQuery.setParameter("maCombo", comboOrder.getMaCombo());
+                    List<ChiTietComboEntity> chiTietCombos = chiTietComboQuery.list();
+                    for (ChiTietComboEntity chiTiet : chiTietCombos) {
+                        if (chiTiet.getBapNuoc() != null && chiTiet.getBapNuoc().getGiaBapNuoc() != null && chiTiet.getSoLuong() != null) {
+                            comboPrice = comboPrice.add(chiTiet.getBapNuoc().getGiaBapNuoc().multiply(new BigDecimal(chiTiet.getSoLuong())));
+                        }
+                    }
+                    comboMap.put("donGia", comboPrice.toString());
+                    BigDecimal tongTienCombo = comboPrice.multiply(new BigDecimal(comboOrder.getSoLuong()));
+                    comboMap.put("tongTien", tongTienCombo.toString());
+                    comboTotal = comboTotal.add(tongTienCombo != null ? tongTienCombo : BigDecimal.ZERO);
                     combos.add(comboMap);
                 }
             }
@@ -272,19 +295,21 @@ public class AdminOrderController {
             bapNuocQuery.setParameter("maDonHang", maDonHang);
             List<ChiTietDonHangBapNuocEntity> bapNuocList = bapNuocQuery.list();
 
-            for (ChiTietDonHangBapNuocEntity bapNuoc : bapNuocList) {
+            for (ChiTietDonHangBapNuocEntity bapNuocOrder : bapNuocList) {
                 Map<String, String> bapNuocMap = new HashMap<>();
                 Query bapNuocEntityQuery = dbSession.createQuery("FROM BapNuocEntity WHERE maBapNuoc = :maBapNuoc");
-                bapNuocEntityQuery.setParameter("maBapNuoc", bapNuoc.getMaBapNuoc());
-                BapNuocEntity bapNuocEntity = (BapNuocEntity) bapNuocEntityQuery.uniqueResult();
+                bapNuocEntityQuery.setParameter("maBapNuoc", bapNuocOrder.getMaBapNuoc());
+                BapNuocEntity bapNuoc = (BapNuocEntity) bapNuocEntityQuery.uniqueResult();
 
-                if (bapNuocEntity != null) {
-                    bapNuocMap.put("tenDichVu", bapNuocEntity.getTenBapNuoc());
-                    bapNuocMap.put("soLuong", String.valueOf(bapNuoc.getSoLuong()));
-                    bapNuocMap.put("donGia", bapNuocEntity.getGiaBapNuoc().toString() + " VNĐ");
-                    BigDecimal tongTienBapNuoc = bapNuocEntity.getGiaBapNuoc().multiply(new BigDecimal(bapNuoc.getSoLuong()));
-                    bapNuocMap.put("tongTien", tongTienBapNuoc.toString() + " VNĐ");
-                    comboTotal = comboTotal.add(tongTienBapNuoc);
+                if (bapNuoc != null) {
+                    bapNuocMap.put("tenDichVu", bapNuoc.getTenBapNuoc());
+                    bapNuocMap.put("soLuong", String.valueOf(bapNuocOrder.getSoLuong()));
+                    bapNuocMap.put("donGia", bapNuoc.getGiaBapNuoc() != null ? bapNuoc.getGiaBapNuoc().toString() : "0");
+                    BigDecimal tongTienBapNuoc = (bapNuoc.getGiaBapNuoc() != null && bapNuocOrder.getSoLuong() > 0)
+                        ? bapNuoc.getGiaBapNuoc().multiply(new BigDecimal(bapNuocOrder.getSoLuong()))
+                        : BigDecimal.ZERO;
+                    bapNuocMap.put("tongTien", tongTienBapNuoc.toString());
+                    comboTotal = comboTotal.add(tongTienBapNuoc != null ? tongTienBapNuoc : BigDecimal.ZERO);
                     combos.add(bapNuocMap);
                 }
             }
@@ -324,6 +349,13 @@ public class AdminOrderController {
                 }
             }
 
+            // Lấy phương thức thanh toán
+            String phuongThucThanhToan = "N/A";
+            if (!donHang.getThanhToans().isEmpty()) {
+                ThanhToanEntity thanhToan = donHang.getThanhToans().get(0); // Giả định lấy thanh toán đầu tiên
+                phuongThucThanhToan = thanhToan.getPhuongThuc() != null ? thanhToan.getPhuongThuc() : "N/A";
+            }
+
             // Điền dữ liệu chi tiết đơn hàng vào Model
             model.addAttribute("showDetail", true);
             model.addAttribute("maDonHang", donHang.getMaDonHang());
@@ -333,18 +365,16 @@ public class AdminOrderController {
             model.addAttribute("phongChieu", phongChieu);
             model.addAttribute("rapChieu", rapChieu);
             model.addAttribute("ngayDat", dateFormat.format(donHang.getNgayDat()));
-            model.addAttribute("tenKhachHang", donHang.getKhachHang() != null ? donHang.getKhachHang().getTenKhachHang() : "N/A");
+            model.addAttribute("tenKhachHang", donHang.getKhachHang() != null ? donHang.getKhachHang().getHoVaTen() : "N/A");
             model.addAttribute("dienThoai", donHang.getKhachHang() != null ? donHang.getKhachHang().getSoDienThoai() : "N/A");
             model.addAttribute("email", donHang.getKhachHang() != null ? donHang.getKhachHang().getEmail() : "N/A");
-            model.addAttribute("trangThai", donHang.isDatHang() ? "Đã xác nhận" : "Chưa xác nhận");
-            model.addAttribute("maKhuyenMai", donHang.getMaKhuyenMai() != null ? donHang.getMaKhuyenMai() : "Không có");
-            model.addAttribute("giamGia", "0 VNĐ");
-            model.addAttribute("phuThu", "0 VNĐ");
-            model.addAttribute("thanhTien", donHang.getTongTien().toString() + " VNĐ");
-            model.addAttribute("tongTien", donHang.getTongTien().toString() + " VNĐ");
+            model.addAttribute("maCode", maCode);
+            model.addAttribute("diemSuDung", donHang.getDiemSuDung() != null ? donHang.getDiemSuDung().toString() : "0");
+            model.addAttribute("tongTien", donHang.getTongTien() != null ? donHang.getTongTien().toString() : "0");
+            model.addAttribute("phuongThucThanhToan", phuongThucThanhToan);
             model.addAttribute("tickets", tickets);
             model.addAttribute("combos", combos);
-            model.addAttribute("comboTotal", comboTotal.toString() + " VNĐ");
+            model.addAttribute("comboTotal", comboTotal != null ? comboTotal.toString() : "0");
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -49,7 +49,9 @@ public class AdminFoodComboController {
         
         try {
             // LẤY DANH SÁCH BẮP NƯỚC
+            logger.info("Fetching BapNuocEntity list");
             Query bapNuocQuery = dbSession.createQuery("FROM BapNuocEntity");
+            bapNuocQuery.setMaxResults(50); // Giới hạn số lượng
             List<BapNuocEntity> listBapNuoc = (List<BapNuocEntity>) bapNuocQuery.list();
             
             List<BapNuocModel> bapNuocList = new ArrayList<>();
@@ -63,9 +65,11 @@ public class AdminFoodComboController {
             }
 
             // LẤY DANH SÁCH COMBO
+            logger.info("Fetching ComboEntity list");
             Query comboQuery = dbSession.createQuery(
                 "SELECT DISTINCT c FROM ComboEntity c LEFT JOIN FETCH c.chiTietCombos"
             );
+            comboQuery.setMaxResults(50); // Giới hạn số lượng
             List<ComboEntity> listCombo = (List<ComboEntity>) comboQuery.list();
             
             List<ComboModel> comboList = new ArrayList<>();
@@ -92,7 +96,9 @@ public class AdminFoodComboController {
             // LẤY THÔNG TIN CHI TIẾT NẾU CÓ YÊU CẦU CHỈNH SỬA
             Object editItem = null;
             if (editMa != null && editLoai != null) {
+                logger.info("Processing edit request for ma: " + editMa + ", loai: " + editLoai);
                 if ("Bắp Nước".equals(editLoai)) {
+                    logger.info("Fetching BapNuocEntity with ma: " + editMa);
                     BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, editMa);
                     if (bapNuoc != null) {
                         BapNuocModel bapNuocModel = new BapNuocModel();
@@ -101,8 +107,13 @@ public class AdminFoodComboController {
                         bapNuocModel.setGiaBapNuoc(bapNuoc.getGiaBapNuoc());
                         bapNuocModel.setUrlHinhAnh(bapNuoc.getUrlHinhAnh());
                         editItem = bapNuocModel;
+                        logger.info("Found BapNuocEntity: " + bapNuoc.getTenBapNuoc());
+                    } else {
+                        logger.warning("BapNuocEntity not found for ma: " + editMa);
+                        model.addAttribute("error", "Không tìm thấy bắp nước với mã " + editMa);
                     }
                 } else if ("Combo".equals(editLoai)) {
+                    logger.info("Fetching ComboEntity with ma: " + editMa);
                     Query editComboQuery = dbSession.createQuery(
                         "SELECT DISTINCT c FROM ComboEntity c LEFT JOIN FETCH c.chiTietCombos WHERE c.maCombo = :maCombo"
                     );
@@ -123,11 +134,15 @@ public class AdminFoodComboController {
                         }
                         comboModel.setChiTietCombos(chiTietList);
                         editItem = comboModel;
+                        logger.info("Found ComboEntity: " + combo.getTenCombo());
+                    } else {
+                        logger.warning("ComboEntity not found for ma: " + editMa);
+                        model.addAttribute("error", "Không tìm thấy combo với mã " + editMa);
                     }
                 }
             }
 
-            // Tạo mã mới cho cả Bắp Nước và Combo để hiển thị trong modal thêm
+            // Tạo mã mới cho cả Bắp Nước và Combo
             Map<String, String> newMaMap = new HashMap<>();
             newMaMap.put("Bắp Nước", generateId("Bắp Nước", dbSession));
             newMaMap.put("Combo", generateId("Combo", dbSession));
@@ -138,7 +153,7 @@ public class AdminFoodComboController {
             model.addAttribute("allBapNuocList", bapNuocList);
             model.addAttribute("editItem", editItem);
             model.addAttribute("editLoai", editLoai);
-            model.addAttribute("showEditModal", editMa != null && editLoai != null);
+            model.addAttribute("showEditModal", editMa != null && editLoai != null && editItem != null);
             model.addAttribute("newMaMap", newMaMap);
 
         } catch (Exception e) {
@@ -263,14 +278,9 @@ public class AdminFoodComboController {
                 errors.add("Giá không được để trống.");
             } else {
                 try {
-                    String cleanedGia = giaStr.replaceAll("[^0-9.]", ""); // Loại bỏ tất cả ký tự không phải số hoặc dấu chấm
-                    if (cleanedGia.isEmpty()) {
-                        errors.add("Giá phải là số hợp lệ.");
-                    } else {
-                        gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
-                        if (gia.compareTo(BigDecimal.ZERO) <= 0) {
-                            errors.add("Giá phải là số dương.");
-                        }
+                    gia = new BigDecimal(giaStr).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    if (gia.compareTo(BigDecimal.ZERO) <= 0) {
+                        errors.add("Giá phải là số dương.");
                     }
                 } catch (NumberFormatException e) {
                     errors.add("Giá không đúng định dạng số.");
@@ -282,32 +292,48 @@ public class AdminFoodComboController {
                 if (bapNuocHidden == null || bapNuocHidden.trim().isEmpty()) {
                     errors.add("Danh sách bắp nước không được để trống.");
                 } else {
-                    String[] bapNuocPairs = bapNuocHidden.split(",");
-                    for (String pair : bapNuocPairs) {
-                        String[] parts = pair.split(":");
-                        if (parts.length != 2) {
-                            errors.add("Dữ liệu bắp nước không hợp lệ: " + pair);
-                            break;
-                        }
-                        String maBapNuoc = parts[0].trim();
-                        int soLuong;
-                        try {
-                            soLuong = Integer.parseInt(parts[1].trim());
-                            if (soLuong <= 0) {
-                                errors.add("Số lượng bắp nước phải là số dương cho mã " + maBapNuoc + ".");
-                                break;
+                    try {
+                        String[] bapNuocPairs = bapNuocHidden.split(",");
+                        for (String pair : bapNuocPairs) {
+                            if (pair.trim().isEmpty()) continue;
+                            
+                            String[] parts = pair.split(":");
+                            if (parts.length != 2) {
+                                errors.add("Dữ liệu bắp nước không hợp lệ: " + pair);
+                                continue;
                             }
-                        } catch (NumberFormatException e) {
-                            errors.add("Số lượng bắp nước không hợp lệ cho mã " + maBapNuoc + ".");
-                            break;
+                            
+                            String maBapNuoc = parts[0].trim();
+                            if (maBapNuoc.isEmpty()) {
+                                errors.add("Mã bắp nước không được để trống.");
+                                continue;
+                            }
+                            
+                            int soLuong;
+                            try {
+                                soLuong = Integer.parseInt(parts[1].trim());
+                                if (soLuong <= 0) {
+                                    errors.add("Số lượng bắp nước phải là số dương cho mã " + maBapNuoc + ".");
+                                    continue;
+                                }
+                            } catch (NumberFormatException e) {
+                                errors.add("Số lượng bắp nước không hợp lệ cho mã " + maBapNuoc + ".");
+                                continue;
+                            }
+                            
+                            // Kiểm tra tồn tại của bắp nước
+                            BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, maBapNuoc);
+                            if (bapNuoc == null) {
+                                errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại trong hệ thống.");
+                                continue;
+                            }
+                            
+                            bapNuocIds.add(maBapNuoc);
+                            soLuongs.add(soLuong);
                         }
-                        BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, maBapNuoc);
-                        if (bapNuoc == null) {
-                            errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại trong hệ thống.");
-                            break;
-                        }
-                        bapNuocIds.add(maBapNuoc);
-                        soLuongs.add(soLuong);
+                    } catch (Exception e) {
+                        logger.severe("Error processing bapNuocHidden: " + e.getMessage());
+                        errors.add("Lỗi xử lý dữ liệu bắp nước: " + e.getMessage());
                     }
                 }
             }
@@ -392,118 +418,26 @@ public class AdminFoodComboController {
         Session dbSession = sessionFactory.getCurrentSession();
         List<String> errors = new ArrayList<>();
         BigDecimal gia = null;
-        List<String> bapNuocIds = new ArrayList<>();
-        List<Integer> soLuongs = new ArrayList<>();
 
-        // Infer loai and ma if not provided
-        if (loai == null || loai.trim().isEmpty() || ma == null || ma.trim().isEmpty()) {
-            Object editItem = model.asMap().get("editItem");
-            if (editItem instanceof BapNuocModel) {
-                loai = "Bắp Nước";
-                ma = ((BapNuocModel) editItem).getMaBapNuoc();
-            } else if (editItem instanceof ComboModel) {
-                loai = "Combo";
-                ma = ((ComboModel) editItem).getMaCombo();
-            }
-            if (ma == null || loai == null) {
-                model.addAttribute("error", "Không thể xác định mã hoặc loại của mục cần chỉnh sửa.");
-                return showFoodComboManager(null, null, model, request);
-            }
-            logger.info("Inferred loai: " + loai + ", ma: " + ma);
-        }
-
+        // Validate và xử lý các trường khác
         try {
-            // Validate tên
             if (ten == null || ten.trim().isEmpty()) {
                 errors.add("Tên không được để trống.");
             } else if (checkDuplicateTen(ten.trim(), loai, ma, dbSession)) {
                 errors.add("Tên " + ten.trim() + " đã tồn tại trong hệ thống.");
             }
 
-            // Làm sạch và chuyển đổi giá
             if (giaStr == null || giaStr.trim().isEmpty()) {
                 errors.add("Giá không được để trống.");
             } else {
                 try {
-                    String cleanedGia = giaStr.replaceAll("[^0-9.]", ""); // Loại bỏ tất cả ký tự không phải số hoặc dấu chấm
-                    if (cleanedGia.isEmpty()) {
-                        errors.add("Giá phải là số hợp lệ.");
-                    } else {
-                        gia = new BigDecimal(cleanedGia).setScale(2, BigDecimal.ROUND_HALF_UP);
-                        if (gia.compareTo(BigDecimal.ZERO) <= 0) {
-                            errors.add("Giá phải là số dương.");
-                        }
+                    gia = new BigDecimal(giaStr.trim()).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    if (gia.compareTo(BigDecimal.ZERO) <= 0) {
+                        errors.add("Giá phải là số dương.");
                     }
                 } catch (NumberFormatException e) {
-                    errors.add("Giá không đúng định dạng số.");
+                    errors.add("Giá không hợp lệ.");
                 }
-            }
-
-            // Validate bắp nước trong combo
-            if ("Combo".equals(loai)) {
-                if (bapNuocHidden == null || bapNuocHidden.trim().isEmpty()) {
-                    errors.add("Danh sách bắp nước không được để trống.");
-                } else {
-                    String[] bapNuocPairs = bapNuocHidden.split(",");
-                    for (String pair : bapNuocPairs) {
-                        String[] parts = pair.split(":");
-                        if (parts.length != 2) {
-                            errors.add("Dữ liệu bắp nước không hợp lệ: " + pair);
-                            break;
-                        }
-                        String maBapNuoc = parts[0].trim();
-                        int soLuong;
-                        try {
-                            soLuong = Integer.parseInt(parts[1].trim());
-                            if (soLuong <= 0) {
-                                errors.add("Số lượng bắp nước phải là số dương cho mã " + maBapNuoc + ".");
-                                break;
-                            }
-                        } catch (NumberFormatException e) {
-                            errors.add("Số lượng bắp nước không hợp lệ cho mã " + maBapNuoc + ".");
-                            break;
-                        }
-                        BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, maBapNuoc);
-                        if (bapNuoc == null) {
-                            errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại trong hệ thống.");
-                            break;
-                        }
-                        bapNuocIds.add(maBapNuoc);
-                        soLuongs.add(soLuong);
-                    }
-                }
-            }
-
-            // Nếu có lỗi, trả về trang với dữ liệu chỉnh sửa
-            if (!errors.isEmpty()) {
-                Object editItem = null;
-                if ("Bắp Nước".equals(loai)) {
-                    BapNuocModel bapNuocModel = new BapNuocModel();
-                    bapNuocModel.setMaBapNuoc(ma);
-                    bapNuocModel.setTenBapNuoc(ten);
-                    bapNuocModel.setGiaBapNuoc(gia);
-                    editItem = bapNuocModel;
-                } else {
-                    ComboModel comboModel = new ComboModel();
-                    comboModel.setMaCombo(ma);
-                    comboModel.setTenCombo(ten);
-                    comboModel.setGiaCombo(gia);
-                    comboModel.setMoTa(moTa);
-                    List<ChiTietComboModel> chiTietList = new ArrayList<>();
-                    for (int i = 0; i < bapNuocIds.size(); i++) {
-                        ChiTietComboModel ctModel = new ChiTietComboModel();
-                        ctModel.setMaBapNuoc(bapNuocIds.get(i));
-                        ctModel.setSoLuong(soLuongs.get(i));
-                        chiTietList.add(ctModel);
-                    }
-                    comboModel.setChiTietCombos(chiTietList);
-                    editItem = comboModel;
-                }
-                model.addAttribute("editItem", editItem);
-                model.addAttribute("editLoai", loai);
-                model.addAttribute("showEditModal", true);
-                model.addAttribute("error", String.join(" ", errors));
-                return showFoodComboManager(ma, loai, model, request);
             }
 
             if ("Bắp Nước".equals(loai)) {
@@ -517,9 +451,7 @@ public class AdminFoodComboController {
                 bapNuoc.setTenBapNuoc(ten.trim());
                 bapNuoc.setGiaBapNuoc(gia);
                 bapNuoc.setUrlHinhAnh(urlHinhAnh);
-
-                dbSession.update(bapNuoc);
-                logger.info("Updated BapNuocEntity: " + ma);
+                dbSession.merge(bapNuoc);
             } else if ("Combo".equals(loai)) {
                 ComboEntity combo = (ComboEntity) dbSession.get(ComboEntity.class, ma);
                 if (combo == null) {
@@ -527,62 +459,109 @@ public class AdminFoodComboController {
                     return showFoodComboManager(null, null, model, request);
                 }
 
+                // Validate danh sách bắp nước trong combo
+                Map<String, Integer> formData = new HashMap<>();
+                if (bapNuocHidden != null && !bapNuocHidden.trim().isEmpty()) {
+                    String[] pairs = bapNuocHidden.split(",");
+                    for (String pair : pairs) {
+                        if (pair.trim().isEmpty()) continue;
+                        String[] parts = pair.split(":");
+                        if (parts.length != 2) {
+                            errors.add("Dữ liệu bắp nước không hợp lệ: " + pair);
+                            continue;
+                        }
+                        String maBapNuoc = parts[0].trim();
+                        try {
+                            int soLuong = Integer.parseInt(parts[1].trim());
+                            if (soLuong <= 0) {
+                                errors.add("Số lượng bắp nước phải là số dương cho mã " + maBapNuoc);
+                                continue;
+                            }
+                            // Kiểm tra tồn tại của bắp nước
+                            BapNuocEntity bapNuoc = (BapNuocEntity) dbSession.get(BapNuocEntity.class, maBapNuoc);
+                            if (bapNuoc == null) {
+                                errors.add("Mã bắp nước " + maBapNuoc + " không tồn tại.");
+                                continue;
+                            }
+                            formData.put(maBapNuoc, soLuong);
+                        } catch (NumberFormatException e) {
+                            errors.add("Số lượng bắp nước không hợp lệ cho mã " + maBapNuoc);
+                        }
+                    }
+                } else {
+                    errors.add("Danh sách bắp nước không được để trống.");
+                }
+
+                // Nếu có lỗi, trả về trang với thông báo lỗi
+                if (!errors.isEmpty()) {
+                    model.addAttribute("errors", errors);
+                    return showFoodComboManager(ma, loai, model, request);
+                }
+
+                // Lấy danh sách chi tiết combo hiện tại
+                List<ChiTietComboEntity> currentChiTiet = new ArrayList<>(combo.getChiTietCombos());
+
+                // So sánh và cập nhật chi tiết combo
+                // 1. Xử lý các mã bắp nước từ form (thêm mới hoặc cập nhật)
+                for (Map.Entry<String, Integer> entry : formData.entrySet()) {
+                    String maBapNuoc = entry.getKey();
+                    int soLuong = entry.getValue();
+
+                    // Tìm chi tiết combo hiện tại cho mã bắp nước
+                    ChiTietComboEntity existingChiTiet = currentChiTiet.stream()
+                            .filter(ct -> ct.getMaBapNuoc().equals(maBapNuoc))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (existingChiTiet != null) {
+                        // Nếu mã bắp nước đã tồn tại, cập nhật số lượng nếu khác
+                        if (existingChiTiet.getSoLuong() != soLuong) {
+                            existingChiTiet.setSoLuong(soLuong);
+                            dbSession.merge(existingChiTiet);
+                            logger.info("Updated ChiTietComboEntity: maCombo=" + ma + ", maBapNuoc=" + maBapNuoc + ", soLuong=" + soLuong);
+                        }
+                        // Loại bỏ khỏi danh sách currentChiTiet để tránh xóa sau này
+                        currentChiTiet.remove(existingChiTiet);
+                    } else {
+                        // Nếu mã bắp nước không tồn tại, thêm mới
+                        ChiTietComboEntity newChiTiet = new ChiTietComboEntity();
+                        newChiTiet.setCombo(combo);
+                        newChiTiet.setMaBapNuoc(maBapNuoc);
+                        newChiTiet.setSoLuong(soLuong);
+                        combo.getChiTietCombos().add(newChiTiet);
+                        dbSession.persist(newChiTiet);
+                        logger.info("Added new ChiTietComboEntity: maCombo=" + ma + ", maBapNuoc=" + maBapNuoc + ", soLuong=" + soLuong);
+                    }
+                }
+
+                // 2. Xóa các chi tiết combo không còn trong form
+                for (ChiTietComboEntity chiTiet : currentChiTiet) {
+                    combo.getChiTietCombos().remove(chiTiet);
+                    dbSession.delete(chiTiet);
+                    logger.info("Deleted ChiTietComboEntity: maCombo=" + ma + ", maBapNuoc=" + chiTiet.getMaBapNuoc());
+                }
+
+                // Cập nhật các thông tin khác của combo
                 String urlHinhAnh = handleImageUpload(hinhAnhFile, combo.getUrlHinhAnh());
                 combo.setTenCombo(ten.trim());
                 combo.setGiaCombo(gia);
                 combo.setMoTa(moTa != null ? moTa.trim() : null);
                 combo.setUrlHinhAnh(urlHinhAnh);
 
-                // Xóa chi tiết combo cũ
-                combo.getChiTietCombos().clear();
-                dbSession.flush();
+                dbSession.merge(combo);
+                logger.info("Updated ComboEntity: maCombo=" + ma);
+            }
 
-                // Thêm chi tiết combo mới
-                List<ChiTietComboEntity> chiTietCombos = new ArrayList<>();
-                for (int i = 0; i < bapNuocIds.size(); i++) {
-                    ChiTietComboEntity chiTiet = new ChiTietComboEntity();
-                    chiTiet.setCombo(combo);
-                    chiTiet.setMaBapNuoc(bapNuocIds.get(i));
-                    chiTiet.setSoLuong(soLuongs.get(i));
-                    chiTietCombos.add(chiTiet);
-                }
-
-                combo.setChiTietCombos(chiTietCombos);
-                dbSession.update(combo);
-                logger.info("Updated ComboEntity: " + ma + " with " + chiTietCombos.size() + " ChiTietComboEntity");
+            if (!errors.isEmpty()) {
+                model.addAttribute("errors", errors);
+                return showFoodComboManager(ma, loai, model, request);
             }
 
             model.addAttribute("success", "Cập nhật " + loai + " thành công!");
             return "redirect:/admin/food-combo";
 
         } catch (Exception e) {
-            logger.severe("Error updating item: " + e.getMessage());
-            Object editItem = null;
-            if ("Bắp Nước".equals(loai)) {
-                BapNuocModel bapNuocModel = new BapNuocModel();
-                bapNuocModel.setMaBapNuoc(ma);
-                bapNuocModel.setTenBapNuoc(ten);
-                bapNuocModel.setGiaBapNuoc(gia);
-                editItem = bapNuocModel;
-            } else {
-                ComboModel comboModel = new ComboModel();
-                comboModel.setMaCombo(ma);
-                comboModel.setTenCombo(ten);
-                comboModel.setGiaCombo(gia);
-                comboModel.setMoTa(moTa);
-                List<ChiTietComboModel> chiTietList = new ArrayList<>();
-                for (int i = 0; i < bapNuocIds.size(); i++) {
-                    ChiTietComboModel ctModel = new ChiTietComboModel();
-                    ctModel.setMaBapNuoc(bapNuocIds.get(i));
-                    ctModel.setSoLuong(soLuongs.get(i));
-                    chiTietList.add(ctModel);
-                }
-                comboModel.setChiTietCombos(chiTietList);
-                editItem = comboModel;
-            }
-            model.addAttribute("editItem", editItem);
-            model.addAttribute("editLoai", loai);
-            model.addAttribute("showEditModal", true);
+            logger.severe("Error editing item: " + e.getMessage());
             model.addAttribute("error", "Lỗi khi cập nhật: " + e.getMessage());
             return showFoodComboManager(ma, loai, model, request);
         }

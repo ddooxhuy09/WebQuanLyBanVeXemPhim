@@ -61,6 +61,7 @@
 		            <span class="age-restriction">T${phim.doTuoi}</span>
 		            <div class="overlay">
 		                <a href="${pageContext.request.contextPath}/movie-detail?id=${phim.maPhim}" class="buy-ticket">Đặt vé</a>
+                        <a href="${phim.urlTrailer}" class="trailer-btn" target="_blank">Xem Trailer</a>
 		            </div>
 		        </div>
 		        <h3 class="movie-title">${phim.tenPhim}</h3>

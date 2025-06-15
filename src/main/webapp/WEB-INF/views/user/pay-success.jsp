@@ -138,7 +138,7 @@
                         <p><strong>Combo:</strong></p>
                         <c:forEach var="combo" items="${selectedCombos}">
                             <p class="highlight">
-                                ${combo.key} (x${combo.value}):
+                                ${comboNames[combo.key]} (x${combo.value}):
                                 <fmt:formatNumber value="${comboPrices[combo.key]}" pattern="#,###đ" />
                             </p>
                         </c:forEach>
@@ -147,7 +147,7 @@
                         <p><strong>Bắp nước:</strong></p>
                         <c:forEach var="bapNuoc" items="${selectedBapNuocs}">
                             <p class="highlight">
-                                ${bapNuoc.key} (x${bapNuoc.value}):
+                                ${bapNuocNames[bapNuoc.key]} (x${bapNuoc.value}):
                                 <fmt:formatNumber value="${bapNuocPrices[bapNuoc.key]}" pattern="#,###đ" />
                             </p>
                         </c:forEach>

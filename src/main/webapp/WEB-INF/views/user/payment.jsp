@@ -328,7 +328,7 @@
                         <input type="hidden" name="maSuatChieu" value="${maSuatChieu}" />
                         <input type="hidden" name="selectedSeats" value="${selectedSeats}" />
                         <input type="text" name="promoCode" class="form-control" placeholder="Nhập mã khuyến mãi" value="${promoCode}" />
-                        <button type="submit" class="btn-warning">Áp Dụng</button>
+                        <button type="submit" class="btn-warning">Áp dụng mã</button>
                     </form>
 
                     <c:if test="${not empty khuyenMai}">
@@ -352,13 +352,13 @@
                     <div class="points-form">
                         <h6>Sử dụng điểm tích lũy</h6>
                         <p>Số điểm hiện có: <strong>${sessionScope.loggedInUser.tongDiem}</strong></p>
-                        <form action="${pageContext.request.contextPath}/booking/apply-points" method="post" class="promo-form">
+                        <form action="${pageContext.request.contextPath}/booking/apply-points" method="post" class="points-form">
                             <input type="hidden" name="maPhim" value="${maPhim}" />
                             <input type="hidden" name="maSuatChieu" value="${maSuatChieu}" />
                             <input type="hidden" name="selectedSeats" value="${selectedSeats}" />
                             <input type="hidden" name="promoCode" value="${promoCode}" />
                             <input type="number" name="points" class="form-control" placeholder="Nhập số điểm muốn sử dụng" min="0" value="${appliedPoints != null ? appliedPoints : ''}" />
-                            <button type="submit" class="btn-warning">Áp dụng</button>
+                            <button type="submit" class="btn-warning">Áp dụng điểm</button>
                         </form>
                         <c:if test="${not empty appliedPoints && appliedPoints > 0}">
                             <div class="discount-info">
@@ -440,11 +440,20 @@
                                     </c:if>
                                 </c:forEach>
                             </c:if>
+                            <c:if test="${not empty selectedCombos}">
+                                <p><strong>Combo:</strong></p>
+                                <c:forEach var="combo" items="${selectedCombos}">
+                                    <p>
+                                        ${comboNames[combo.key] != null ? comboNames[combo.key] : combo.key} (x${combo.value}):
+                                        <fmt:formatNumber value="${comboPrices[combo.key]}" type="currency" currencySymbol="đ" groupingUsed="true" maxFractionDigits="0" />
+                                    </p>
+                                </c:forEach>
+                            </c:if>
                             <c:if test="${not empty selectedBapNuocs}">
                                 <p><strong>Bắp nước:</strong></p>
                                 <c:forEach var="bapNuoc" items="${selectedBapNuocs}">
                                     <p>
-                                        ${bapNuoc.key} (x${bapNuoc.value}):
+                                        ${bapNuocNames[bapNuoc.key] != null ? bapNuocNames[bapNuoc.key] : bapNuoc.key} (x${bapNuoc.value}):
                                         <fmt:formatNumber value="${bapNuocPrices[bapNuoc.key]}" type="currency" currencySymbol="đ" groupingUsed="true" maxFractionDigits="0" />
                                     </p>
                                 </c:forEach>

@@ -16,8 +16,8 @@
                 <option value="all" ${sortBy == 'all' ? 'selected' : ''}>Mặc định</option>
                 <option value="sodiem_asc" ${sortBy == 'sodiem_asc' ? 'selected' : ''}>Số Điểm Cần (tăng dần)</option>
                 <option value="sodiem_desc" ${sortBy == 'sodiem_desc' ? 'selected' : ''}>Số Điểm Cần (giảm dần)</option>
-                <option value="giatri_asc" ${sortBy == 'giatri_asc' ? 'selected' : ''}>Giá Trị Giảm (tăng dần)</option>
-                <option value="giatri_desc" ${sortBy == 'giatri_desc' ? 'selected' : ''}>Giá Trị Giảm (giảm dần)</option>
+                <option value="giatri_asc" ${sortBy == 'giatri_asc' ? 'selected' : ''}>Giá trị Giảm (tăng dần)</option>
+                <option value="giatri_desc" ${sortBy == 'giatri_desc' ? 'selected' : ''}>Giá trị Giảm (giảm dần)</option>
             </select>
         </div>
         <div class="form-group">
@@ -113,25 +113,25 @@
                         </div>
                         <div class="form-group">
                             <label for="addTenUuDai">Tên Ưu Đãi</label>
-                            <input type="text" class="form-control" id="addTenUuDai" name="tenUuDai" placeholder="VD: Giảm giá vé 10,000đ" value="${addFormData != null ? addFormData.tenUuDai : ''}">
+                            <input type="text" class="form-control" id="addTenUuDai" name="tenUuDai" placeholder="VD: Giảm giá vé 10,000đ" value="${addTenUuDai}">
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="addSoDiemCan">Số Điểm Cần</label>
-                            <input type="text" class="form-control" id="addSoDiemCan" name="soDiemCan" placeholder="VD: 100" value="${addFormData != null ? addFormData.soDiemCan : ''}">
+                            <input type="text" class="form-control" id="addSoDiemCan" name="soDiemCan" placeholder="VD: 100" value="${addSoDiemCan}">
                         </div>
                         <div class="form-group">
                             <label for="addLoaiUuDai">Loại Ưu Đãi</label>
                             <select class="form-control" id="addLoaiUuDai" name="loaiUuDai">
-                                <option value="Giảm giá vé" ${addFormData != null && addFormData.loaiUuDai == 'Giảm giá vé' ? 'selected' : ''}>Giảm giá vé</option>
-                                <option value="Tặng đồ ăn" ${addFormData != null && addFormData.loaiUuDai == 'Tặng đồ ăn' ? 'selected' : ''}>Tặng đồ ăn</option>
-                                <option value="Tặng voucher" ${addFormData != null && addFormData.loaiUuDai == 'Tặng voucher' ? 'selected' : ''}>Tặng voucher</option>
+                                <option value="Giảm giá vé" ${addLoaiUuDai == 'Giảm giá vé' ? 'selected' : ''}>Giảm giá vé</option>
+                                <option value="Tặng đồ ăn" ${addLoaiUuDai == 'Tặng đồ ăn' ? 'selected' : ''}>Tặng đồ ăn</option>
+                                <option value="Tặng voucher" ${addLoaiUuDai == 'Tặng voucher' ? 'selected' : ''}>Tặng voucher</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="addGiaTriGiam">Giá Trị Giảm (VNĐ)</label>
-                            <input type="text" class="form-control" id="addGiaTriGiam" name="giaTriGiam" placeholder="VD: 50,000" value="${addFormData != null ? addFormData.giaTriGiam : ''}">
+                            <input type="text" class="form-control" id="addGiaTriGiam" name="giaTriGiam" placeholder="VD: 50,000" value="${addGiaTriGiam}">
                         </div>
                     </div>
                 </div>
@@ -358,14 +358,19 @@
                 }
 
                 // Hiển thị modal thêm nếu có lỗi từ server
-                <c:if test="${not empty addFormData}">
+                <c:if test="${not empty addTenUuDai || not empty addSoDiemCan || not empty addLoaiUuDai || not empty addGiaTriGiam}">
                     document.getElementById('addModal').style.display = 'flex';
-                    document.getElementById('addMaQuyDoi').value = '${newMaQuyDoi}';
-                    document.getElementById('addTenUuDai').value = '${addFormData.tenUuDai}';
-                    document.getElementById('addSoDiemCan').value = '${addFormData.soDiemCan}';
-                    document.getElementById('addLoaiUuDai').value = '${addFormData.loaiUuDai}';
-                    document.getElementById('addGiaTriGiam').value = typeof formatCurrencyWithDecimal === 'function' ? formatCurrencyWithDecimal(parseFloat('${addFormData.giaTriGiam}')) : '${addFormData.giaTriGiam}';
-                    console.log("Repopulated add modal với server data, giaTriGiam:", document.getElementById('addGiaTriGiam').value);
+                    document.getElementById('addMaQuyDoi').value = '${addMaQuyDoi != null ? addMaQuyDoi : newMaQuyDoi}';
+                    document.getElementById('addTenUuDai').value = '${addTenUuDai}';
+                    document.getElementById('addSoDiemCan').value = '${addSoDiemCan}';
+                    document.getElementById('addLoaiUuDai').value = '${addLoaiUuDai}';
+                    document.getElementById('addGiaTriGiam').value = <c:choose>
+                        <c:when test="${not empty addGiaTriGiam}">
+                            typeof formatCurrencyWithDecimal === 'function' ? formatCurrencyWithDecimal(parseFloat('${addGiaTriGiam}')) : '${addGiaTriGiam}'
+                        </c:when>
+                        <c:otherwise>''</c:otherwise>
+                    </c:choose>;
+                    console.log("Repopulated add modal with server data, giaTriGiam:", document.getElementById('addGiaTriGiam').value);
                 </c:if>
 
                 // Ẩn thông báo sau 5 giây

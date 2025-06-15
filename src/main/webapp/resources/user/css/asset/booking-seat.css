@@ -81,7 +81,8 @@
 }
 
 .seat.available {
-    background-color: #ffffff; /* Trắng */
+    background-color: #ffffff; /* Trắng cho ghế đơn */
+    border-color: #ccc;
 }
 
 .seat.available:hover {
@@ -112,29 +113,35 @@
     border-color: #ffd700;
 }
 
-.seat.double {
+.seat.double, .seat[data-loai-ghe="LG002"] {
     width: 80px; /* Ghế đôi rộng gấp đôi */
-    background-color: #e6f3ff; /* Giữ màu ghế đôi */
+    border-color: #ff69b4; /* Viền hồng cho ghế đôi */
 }
 
-.seat.double.available {
+.seat.double.available, .seat[data-loai-ghe="LG002"].available {
     background-color: #ffffff; /* Trắng cho ghế đôi trống */
+    border-color: #ff69b4; /* Viền hồng */
 }
 
-.seat.double.selected {
+.seat.double.selected, .seat[data-loai-ghe="LG002"].selected {
     background-color: #ffd700; /* Vàng cho ghế đôi được chọn */
+    border-color: #ff69b4; /* Viền hồng */
 }
 
-.seat.double.occupied {
+.seat.double.occupied, .seat[data-loai-ghe="LG002"].occupied {
     background-color: #9e9e9e; /* Xám cho ghế đôi đã đặt */
+    border-color: #ff69b4; /* Viền hồng */
 }
 
-.seat.double.reserved {
+.seat.double.reserved, .seat[data-loai-ghe="LG002"].reserved {
     background-color: #9e9e9e; /* Xám cho ghế đôi giữ bởi user khác */
+    border-color: #ff69b4; /* Viền hồng */
 }
 
-.seat.double.reserved[data-reserved-by="${sessionScope.loggedInUser.maKhachHang}"] {
+.seat.double.reserved[data-reserved-by="${sessionScope.loggedInUser.maKhachHang}"], 
+.seat[data-loai-ghe="LG002"].reserved[data-reserved-by="${sessionScope.loggedInUser.maKhachHang}"] {
     background-color: #ffd700; /* Vàng cho ghế đôi giữ bởi user hiện tại */
+    border-color: #ff69b4; /* Viền hồng */
 }
 
 .seat .timer {
@@ -176,7 +183,6 @@
     background-color: #1976d2;
 }
 
-/* Style cho seat-legend */
 .seat-legend {
     display: flex;
     flex-direction: row;
@@ -200,7 +206,13 @@
 }
 
 .seat-example.available {
-    background-color: #ffffff; /* Trắng */
+    background-color: #ffffff; /* Trắng cho ghế đơn */
+    border-color: #ccc;
+}
+
+.seat-example.available.double {
+    background-color: #ffffff; /* Trắng cho ghế đôi */
+    border-color: #ff69b4; /* Viền hồng */
 }
 
 .seat-example.selected {

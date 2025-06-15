@@ -17,11 +17,11 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
     function fetchSeatTypes() {
         return fetch(`${contextPath}/admin/theater-rooms/seat-types/list`)
             .then(response => {
-                if (!response.ok) throw new Error('Failed to fetch seat types');
+                if (!response.ok) throw new Error('Failed to fetch seat types: ' + response.status);
                 return response.json();
             })
             .then(data => {
-                seatTypes = data;
+                seatTypes = data || [];
                 console.log('Seat types loaded:', seatTypes);
                 if (!data || data.length === 0) {
                     console.warn('No seat types loaded');
@@ -30,7 +30,7 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
             })
             .catch(error => {
                 console.error('Error fetching seat types:', error);
-                alert('Không thể tải danh sách loại ghế. Vui lòng thử lại.');
+                alert('Không thể tải danh sách loại ghế: ' + error.message);
                 return [];
             });
     }
@@ -49,6 +49,14 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         return seatType.mauGhe || '#f0f0f0';
     }
 
+    // Lấy số chỗ của loại ghế
+    function getSeatCapacity(type) {
+        if (!type) return 1;
+        const seatType = seatTypes.find(st => st.maLoaiGhe === type);
+        return seatType ? seatType.soCho || 1 : 1;
+    }
+
+    // Tạo lưới ghế
     function createGrid() {
         seatGrid.innerHTML = '';
         const colLabels = document.createElement('div');
@@ -72,7 +80,7 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
 
             for (let j = 0; j < cols; j++) {
                 const cell = document.createElement('div');
-                cell.className = 'seat-cell';
+                cell.className = 'seat-cell empty';
                 cell.dataset.row = i;
                 cell.dataset.col = j;
                 if (editable) {
@@ -89,6 +97,7 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         }
     }
 
+    // Tải dữ liệu ghế
     function loadSeats(seatData) {
         const roomSeats = Array.isArray(seatData) ? seatData : [];
         console.log('Loading seats:', roomSeats);
@@ -97,10 +106,13 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
             return;
         }
         roomSeats.forEach(seat => {
-            console.log('Processing seat:', seat);
-            const row = seat.row !== undefined ? seat.row : -1;
-            const col = seat.col !== undefined ? seat.col : -1;
-            if (row >= rows || col >= cols || row < 0 || col < 0) {
+            if (!seat || typeof seat !== 'object') {
+                console.warn('Invalid seat data:', seat);
+                return;
+            }
+            const row = seat.row !== undefined ? parseInt(seat.row) : -1;
+            const col = seat.col !== undefined ? parseInt(seat.col) : -1;
+            if (isNaN(row) || isNaN(col) || row >= rows || col >= cols || row < 0 || col < 0) {
                 console.warn(`Invalid seat position: row ${row}, col ${col}, seat:`, seat);
                 return;
             }
@@ -112,32 +124,35 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
                 cell.style.backgroundColor = color;
                 cell.textContent = `${seat.tenHang || String.fromCharCode(65 + row)}${seat.soGhe || (col + 1)}`;
                 cell.dataset.type = seat.type;
-                cell.className = 'seat-cell';
+                cell.classList.remove('empty');
             } else {
                 console.warn(`No cell found for seat at row ${row}, col ${col}`);
             }
         });
     }
 
+    // Bắt đầu kéo
     function startDrag(event) {
         event.preventDefault();
         isDragging = true;
         startCell = event.target;
-        if (startCell.className.includes('seat-cell') && !startCell.className.includes('label')) {
+        if (startCell.classList.contains('seat-cell') && !startCell.classList.contains('label')) {
             toggleSeat(startCell);
             startCell.classList.add('dragging');
         }
     }
 
+    // Kéo qua
     function dragOver(event) {
         if (!isDragging || !startCell) return;
         event.preventDefault();
         const currentCell = document.elementFromPoint(event.clientX, event.clientY);
-        if (currentCell && currentCell.className.includes('seat-cell') && !currentCell.className.includes('label')) {
+        if (currentCell && currentCell.classList.contains('seat-cell') && !currentCell.classList.contains('label')) {
             selectRange(startCell, currentCell);
         }
     }
 
+    // Kết thúc kéo
     function endDrag() {
         if (isDragging) {
             const draggingCells = document.querySelectorAll('.seat-cell.dragging');
@@ -147,6 +162,7 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         startCell = null;
     }
 
+    // Chọn phạm vi
     function selectRange(start, end) {
         const startRow = parseInt(start.dataset.row);
         const startCol = parseInt(start.dataset.col);
@@ -173,6 +189,7 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         });
     }
 
+    // Thêm/xóa ghế
     function toggleSeat(cell) {
         const row = parseInt(cell.dataset.row);
         const col = parseInt(cell.dataset.col);
@@ -180,27 +197,32 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         const selectedLoaiGhe = loaiGheSelect ? loaiGheSelect.value : null;
         const selectedColor = loaiGheSelect ? getSeatColor(selectedLoaiGhe) : '#f0f0f0';
 
+        if (!selectedLoaiGhe && !gridData[row][col]) {
+            alert('Vui lòng chọn loại ghế trước khi thêm ghế!');
+            return;
+        }
+
         if (gridData[row][col]) {
             gridData[row][col] = null;
             cell.style.backgroundColor = 'transparent';
             cell.textContent = '';
             cell.dataset.type = '';
-            cell.className = 'seat-cell empty';
-        } else if (selectedLoaiGhe) {
+            cell.classList.add('empty');
+        } else {
             gridData[row][col] = selectedLoaiGhe;
             cell.style.backgroundColor = selectedColor;
             cell.textContent = `${String.fromCharCode(65 + row)}${col + 1}`;
             cell.dataset.type = selectedLoaiGhe;
-            cell.className = 'seat-cell';
+            cell.classList.remove('empty');
         }
 
-        // Update capacity info after each change
         if (editable && maxCapacity !== null) {
             const seatData = getSeatData();
             updateCapacityInfo(seatData.totalCapacity, maxCapacity);
         }
     }
 
+    // Xóa toàn bộ ghế
     function resetGrid() {
         gridData = Array(rows).fill().map(() => Array(cols).fill(null));
         const cells = document.querySelectorAll(`#${containerId} .seat-cell:not(.label)`);
@@ -208,16 +230,16 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
             cell.style.backgroundColor = 'transparent';
             cell.textContent = '';
             cell.classList.remove('dragging');
-            cell.className = 'seat-cell empty';
+            cell.classList.add('empty');
             cell.dataset.type = '';
         });
 
-        // Update capacity info after reset
         if (editable && maxCapacity !== null) {
             updateCapacityInfo(0, maxCapacity);
         }
     }
 
+    // Lấy dữ liệu ghế
     function getSeatData() {
         const updatedSeats = [];
         let totalCapacity = 0;
@@ -254,28 +276,43 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         };
     }
 
+    // Cập nhật thông tin sức chứa
     function updateCapacityInfo(currentCapacity, maxCapacity) {
         const capacityInfo = document.getElementById('capacityInfo');
         if (capacityInfo) {
             capacityInfo.innerHTML = `Sức chứa: <span class="${currentCapacity > maxCapacity ? 'text-danger' : 'text-success'}">${currentCapacity}</span> / ${maxCapacity}`;
+            if (currentCapacity > maxCapacity) {
+                alert('Tổng số ghế vượt quá sức chứa cho phép!');
+            }
         }
     }
 
-    // Khởi tạo lưới và tải dữ liệu
+    // Dọn dẹp sự kiện
+    function cleanup() {
+        if (editable) {
+            document.removeEventListener('mousemove', dragOver);
+            document.removeEventListener('mouseup', endDrag);
+            const cells = seatGrid.querySelectorAll('.seat-cell:not(.label)');
+            cells.forEach(cell => {
+                cell.removeEventListener('mousedown', startDrag);
+            });
+        }
+    }
+
+    // Khởi tạo
     fetchSeatTypes().then(() => {
         console.log('Grid creation started');
         createGrid();
         console.log('Loading seats with data:', initialData);
         loadSeats(initialData);
 
-        // Initialize capacity info if maxCapacity is provided
         if (editable && maxCapacity !== null) {
             const seatData = getSeatData();
             updateCapacityInfo(seatData.totalCapacity, maxCapacity);
         }
     });
 
-    // Cập nhật màu khi thay đổi loại ghế trong modal chỉnh sửa
+    // Cập nhật màu khi thay đổi loại ghế
     if (editable) {
         const loaiGheSelect = document.getElementById('loaiGheEdit');
         if (loaiGheSelect) {
@@ -292,7 +329,6 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
                     }
                 });
 
-                // Update capacity info when seat type changes
                 if (maxCapacity !== null) {
                     const seatData = getSeatData();
                     updateCapacityInfo(seatData.totalCapacity, maxCapacity);
@@ -305,6 +341,7 @@ function initSeatGrid(containerId, editable = false, initialData = [], maxCapaci
         resetGrid,
         getSeatData,
         loadSeats,
-        updateCapacityInfo
+        updateCapacityInfo,
+        cleanup
     };
 }

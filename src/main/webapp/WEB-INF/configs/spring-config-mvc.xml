@@ -65,14 +65,13 @@
         </property>
         <property name="packagesToScan" value="movie.entity"/>
     </bean>
-    
-    <!-- Kết nối CSDL -->
+<!-- Kết nối CSDL -->
     <bean id="dataSource" 
           class="org.springframework.jdbc.datasource.DriverManagerDataSource"
           p:driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
           p:url="jdbc:sqlserver://localhost:1433;databaseName=QLBanVeXemPhim;encrypt=true;trustServerCertificate=true;sslProtocol=TLSv1.2"
           p:username="sa"
-          p:password="123" />
+          p:password="1111" />
           
     <!-- Transaction Manager -->
     <bean id="transactionManager" 
@@ -81,4 +80,27 @@
     <tx:annotation-driven transaction-manager="transactionManager"/>
     
     <bean id="restTemplate" class="org.springframework.web.client.RestTemplate"/>
-</beans>		
+    
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- maxUploadSize=5MB -->
+        <property name="maxUploadSize" value="5242880"/>
+    </bean>
+    
+    <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl"> 
+        <property name="host" value="smtp.gmail.com" /> 
+        <property name="port" value="587" /> 
+        <property name="username" value="killerbaohuy@gmail.com" /> 
+        <property name="password" value="gbva qrva czxn rwyn" /> 
+        <property name="defaultEncoding" value="UTF-8"/> 
+        <property name="javaMailProperties"> 
+            <props> 
+                <prop key="mail.smtp.auth">true</prop> 
+                <prop key="mail.smtp.starttls.enable">true</prop> 
+                <prop key="mail.smtp.starttls.required">true</prop> 
+                <prop key="mail.debug">true</prop> 
+                <prop key="mail.smtp.ssl.protocols">TLSv1.2</prop>
+            </props> 
+        </property> 
+    </bean>
+
+</beans>

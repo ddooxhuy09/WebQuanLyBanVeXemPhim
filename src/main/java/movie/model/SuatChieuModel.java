@@ -21,6 +21,7 @@ public class SuatChieuModel {
     private String loaiManChieu;
     private List<PhuThuModel> phuThus; // Giữ lại nếu bạn cần đối tượng phụ thu đầy đủ
     private String danhSachTenPhuThu; // THÊM MỚI: Thuộc tính để hiển thị tên phụ thu
+    private boolean hasTickets;
 
     // Constructors
     public SuatChieuModel() {
@@ -52,6 +53,15 @@ public class SuatChieuModel {
         } else {
             this.danhSachTenPhuThu = "Không có";
         }
+    }
+    
+ // Getters and setters
+    public boolean isHasTickets() {
+        return hasTickets;
+    }
+
+    public void setHasTickets(boolean hasTickets) {
+        this.hasTickets = hasTickets;
     }
 
     // Getters and Setters

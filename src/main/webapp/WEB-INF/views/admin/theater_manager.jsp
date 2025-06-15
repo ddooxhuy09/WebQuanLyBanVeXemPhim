@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
-	pageEncoding="UTF-8"%>
+    pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
@@ -52,7 +52,7 @@
             </div>
             <div class="form-group">
                 <label for="editSdtLienHe">SĐT Liên Hệ</label>
-                <input type="text" class="form-control" id="editSdtLienHe" name="soDienThoaiLienHe" required pattern="\d{10}" title="Số điện thoại phải gồm đúng 10 chữ số" value="${soDienThoaiLienHe_edit != null ? soDienThoaiLienHe_edit : ''}">
+                <input type="text" class="form-control" id="editSdtLienHe" name="soDienThoaiLienHe" required pattern="\d{10}" title="Số điện thoại phải gồm đúng 10 chữ số" value="${soDienThoaiLienHe_edit != null ? soDienThoaiLienHe : ''}">
             </div>
             <div class="modal-actions">
                 <button type="submit" class="custom-btn">Lưu</button>
@@ -70,14 +70,17 @@
     </div>
 </div>
 
-<!-- Div thông báo lỗi -->
-<div id="errorNotification" class="error-notification" style="display: none;">
-    <div class="notification-content">
-        <h3 class="notification-title">Thông Báo</h3>
-        <p id="errorMessage"></p>
-        <button id="closeNotification" class="custom-btn">OK</button>
+<!-- Thông báo lỗi/thành công từ flash attributes -->
+<c:if test="${not empty success}">
+    <div class="alert alert-success" role="alert">
+        ${fn:escapeXml(success)}
     </div>
-</div>
+</c:if>
+<c:if test="${not empty error}">
+    <div class="alert alert-danger" role="alert">
+        ${fn:escapeXml(error)}
+    </div>
+</c:if>
 
 <div class="flex-column col-2 filter-section mb-3">
     <div class="form-group">
@@ -125,8 +128,6 @@
 </div>
 
 <!-- JavaScript -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     updateTheaterList();
@@ -145,6 +146,22 @@ document.addEventListener('DOMContentLoaded', function () {
         editSdtInput.addEventListener("input", function () {
             this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
         });
+    }
+
+    // Hide error message after 5 seconds
+    const errorMessage = document.querySelector('.alert-danger');
+    if (errorMessage) {
+        setTimeout(() => {
+            errorMessage.style.display = 'none';
+        }, 5000);
+    }
+
+    // Hide success message after 5 seconds
+    const successMessage = document.querySelector('.alert-success');
+    if (successMessage) {
+        setTimeout(() => {
+            successMessage.style.display = 'none';
+        }, 5000);
     }
 });
 
@@ -206,111 +223,4 @@ function closeModal() {
     document.getElementById('editSdtLienHe').value = '';
 }
 
-function checkDuplicateFields(event) {
-    event.preventDefault();
-    console.log("checkDuplicateFields called");
-
-    const tenRap = document.getElementById("addTenRap").value.trim();
-    const diaChi = document.getElementById("addDiaChi").value.trim();
-    const sdt = document.getElementById("addSdtLienHe").value.trim();
-
-    console.log("SĐT:", sdt, "Match:", sdt.match(/^\d{10}$/));
-    if (!sdt.match(/^\d{10}$/)) {
-        showErrorNotification("Số điện thoại phải gồm đúng 10 chữ số.");
-        return;
-    }
-
-    const existingData = [
-        <c:forEach items="${rapChieuList}" var="rap">
-            {
-                tenRapChieu: "${fn:escapeXml(rap.tenRapChieu)}",
-                diaChi: "${fn:escapeXml(rap.diaChi)}",
-                soDienThoaiLienHe: "${rap.soDienThoaiLienHe}"
-            },
-        </c:forEach>
-    ];
-
-    const duplicate = existingData.find(item =>
-        item.tenRapChieu.toLowerCase() === tenRap.toLowerCase() ||
-        item.diaChi.toLowerCase() === diaChi.toLowerCase() ||
-        item.soDienThoaiLienHe === sdt
-    );
-
-    console.log("Duplicate found:", duplicate);
-    if (duplicate) {
-        showErrorNotification("Tên rạp, địa chỉ hoặc số điện thoại đã tồn tại.");
-        return;
-    }
-
-    console.log("Submitting add form");
-    document.querySelector("#addModal form").submit();
-}
-
-function checkEditFields(event) {
-    event.preventDefault();
-    console.log("checkEditFields called");
-
-    const maRap = document.getElementById("editMaRap").value.trim();
-    const tenRap = document.getElementById("editTenRap").value.trim();
-    const diaChi = document.getElementById("editDiaChi").value.trim();
-    const sdt = document.getElementById("editSdtLienHe").value.trim();
-
-    console.log("SĐT:", sdt, "Match:", sdt.match(/^\d{10}$/));
-    if (!sdt.match(/^\d{10}$/)) {
-        showErrorNotification("Số điện thoại phải gồm đúng 10 chữ số.");
-        return;
-    }
-
-    const existingData = [
-        <c:forEach items="${rapChieuList}" var="rap">
-            {
-                maRapChieu: "${fn:escapeXml(rap.maRapChieu)}",
-                tenRapChieu: "${fn:escapeXml(rap.tenRapChieu)}",
-                diaChi: "${fn:escapeXml(rap.diaChi)}",
-                soDienThoaiLienHe: "${rap.soDienThoaiLienHe}"
-            },
-        </c:forEach>
-    ];
-
-    const duplicate = existingData.find(item =>
-        item.maRapChieu !== maRap && (
-            item.tenRapChieu.toLowerCase() === tenRap.toLowerCase() ||
-            item.diaChi.toLowerCase() === diaChi.toLowerCase() ||
-            item.soDienThoaiLienHe === sdt
-        )
-    );
-
-    console.log("Duplicate found:", duplicate);
-    if (duplicate) {
-        showErrorNotification("Tên rạp, địa chỉ hoặc số điện thoại đã tồn tại.");
-        return;
-    }
-
-    console.log("Submitting edit form");
-    document.querySelector("#editModal form").submit();
-}
-
-function showErrorNotification(message) {
-    document.getElementById('errorMessage').innerText = message;
-    document.getElementById('errorNotification').style.display = 'block';
-}
-
-document.getElementById('closeNotification').addEventListener('click', function () {
-    document.getElementById('errorNotification').style.display = 'none';
-});
-
-const addForm = document.querySelector("#addModal form");
-if (addForm) {
-    addForm.addEventListener('submit', checkDuplicateFields);
-}
-
-const editForm = document.querySelector("#editModal form");
-if (editForm) {
-    editForm.addEventListener('submit', checkEditFields);
-}
-
-<c:if test="${not empty error}">
-    document.getElementById('errorMessage').innerText = "${fn:escapeXml(error)}";
-    document.getElementById('errorNotification').style.display = 'block';
-</c:if>
 </script>

@@ -8,11 +8,13 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
+import javax.mail.internet.MimeMessage;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +26,9 @@ public class AdminCustomerController {
 
     @Autowired
     private SessionFactory sessionFactory;
+
+    @Autowired
+    private JavaMailSender mailSender; // Tiêm JavaMailSender để gửi email
 
     private static final int ITEMS_PER_PAGE = 25; // 25 bản ghi/trang
     private static final int PAGES_TO_SHOW = 5; // Hiển thị 5 trang
@@ -122,5 +127,41 @@ public class AdminCustomerController {
             model.addAttribute("error", "Lỗi khi xóa khách hàng: " + e.getMessage());
             return showCustomerManager(model, page);
         }
+    }
+
+    @Transactional
+    @RequestMapping(value = "/customers/send-email", method = RequestMethod.POST)
+    public String sendEmail(
+            @RequestParam("maKhachHang") String maKhachHang,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to,
+            @RequestParam("subject") String subject,
+            @RequestParam("body") String body,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            Model model) {
+        try {
+            Session dbSession = sessionFactory.getCurrentSession();
+            KhachHangEntity khachHang = (KhachHangEntity) dbSession.get(KhachHangEntity.class, maKhachHang);
+            if (khachHang == null) {
+                model.addAttribute("error", "Không tìm thấy khách hàng với mã " + maKhachHang);
+                return showCustomerManager(model, page);
+            }
+
+            // Gửi email
+            MimeMessage mail = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mail, true, "utf-8");
+            helper.setFrom(from, from);
+            helper.setTo(to);
+            helper.setReplyTo(from, from);
+            helper.setSubject(subject);
+            helper.setText(body, true);
+            mailSender.send(mail);
+
+            model.addAttribute("success", "Gửi email tới " + to + " thành công.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Lỗi khi gửi email: " + e.getMessage());
+        }
+        return showCustomerManager(model, page);
     }
 }

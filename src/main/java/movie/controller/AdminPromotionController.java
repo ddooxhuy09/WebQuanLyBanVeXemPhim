@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
@@ -102,9 +103,9 @@ public class AdminPromotionController {
             @RequestParam("giaTriGiam") BigDecimal giaTriGiam,
             @RequestParam("ngayBatDau") String ngayBatDauStr,
             @RequestParam("ngayKetThuc") String ngayKetThucStr,
-            @RequestParam("apDungCho") String apDungCho,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/auth/login";
         }
@@ -119,7 +120,6 @@ public class AdminPromotionController {
         formData.setMoTa(moTa);
         formData.setLoaiGiamGia(loaiGiamGia);
         formData.setGiaTriGiam(giaTriGiam);
-        formData.setApDungCho(apDungCho);
 
         // Validation
         if (maCode == null || maCode.trim().isEmpty()) {
@@ -139,9 +139,6 @@ public class AdminPromotionController {
         }
         if (ngayKetThucStr == null || ngayKetThucStr.trim().isEmpty()) {
             errors.add("Ngày kết thúc không được để trống.");
-        }
-        if (apDungCho == null || apDungCho.trim().isEmpty()) {
-            errors.add("Trường áp dụng cho không được để trống.");
         }
 
         // Parse và kiểm tra định dạng ngày
@@ -169,7 +166,6 @@ public class AdminPromotionController {
 
         // Kiểm tra ngày hợp lệ
         if (ngayBatDau != null) {
-            // Đặt ngày hiện tại về 00:00:00
             Calendar todayCal = Calendar.getInstance();
             todayCal.set(Calendar.HOUR_OF_DAY, 0);
             todayCal.set(Calendar.MINUTE, 0);
@@ -193,9 +189,9 @@ public class AdminPromotionController {
 
         // Nếu có lỗi, trả về form
         if (!errors.isEmpty()) {
-            model.addAttribute("error", String.join(" ", errors));
-            model.addAttribute("addFormData", formData);
-            return showPromotionManager(session, model, 1);
+            redirectAttributes.addFlashAttribute("error", String.join(" ", errors));
+            redirectAttributes.addFlashAttribute("addFormData", formData);
+            return "redirect:/admin/promotions";
         }
 
         try {
@@ -207,16 +203,15 @@ public class AdminPromotionController {
             khuyenMai.setGiaTriGiam(giaTriGiam);
             khuyenMai.setNgayBatDau(ngayBatDau);
             khuyenMai.setNgayKetThuc(ngayKetThuc);
-            khuyenMai.setApDungCho(apDungCho);
 
             dbSession.save(khuyenMai);
-            model.addAttribute("success", "Thêm khuyến mãi thành công!");
+            redirectAttributes.addFlashAttribute("success", "Thêm khuyến mãi thành công!");
             return "redirect:/admin/promotions";
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi thêm khuyến mãi: " + e.getMessage());
-            model.addAttribute("addFormData", formData);
-            return showPromotionManager(session, model, 1);
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi thêm khuyến mãi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("addFormData", formData);
+            return "redirect:/admin/promotions";
         }
     }
 
@@ -228,29 +223,40 @@ public class AdminPromotionController {
             @RequestParam("maCode") String maCode,
             @RequestParam("moTa") String moTa,
             @RequestParam("loaiGiamGia") String loaiGiamGia,
-            @RequestParam("giaTriGiam") BigDecimal giaTriGiam,
+            @RequestParam("giaTriGiam") String giaTriGiamStr,
             @RequestParam("ngayBatDau") String ngayBatDauStr,
             @RequestParam("ngayKetThuc") String ngayKetThucStr,
-            @RequestParam("apDungCho") String apDungCho,
             HttpSession session,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/auth/login";
         }
 
         Session dbSession = sessionFactory.getCurrentSession();
         List<String> errors = new ArrayList<>();
-
-        // Lưu dữ liệu để hiển thị lại form nếu lỗi
         KhuyenMaiModel formData = new KhuyenMaiModel();
         formData.setMaKhuyenMai(maKhuyenMai);
         formData.setMaCode(maCode);
         formData.setMoTa(moTa);
         formData.setLoaiGiamGia(loaiGiamGia);
-        formData.setGiaTriGiam(giaTriGiam);
-        formData.setApDungCho(apDungCho);
 
-        // Validation
+        // Validate giaTriGiam
+        BigDecimal giaTriGiam = null;
+        try {
+            giaTriGiam = new BigDecimal(giaTriGiamStr.trim());
+            if (giaTriGiam.compareTo(BigDecimal.ZERO) <= 0) {
+                errors.add("Giá trị giảm phải là số dương.");
+            }
+            if (loaiGiamGia.equals("Phần trăm") && giaTriGiam.compareTo(new BigDecimal("100")) > 0) {
+                errors.add("Giá trị phần trăm giảm không được lớn hơn 100.");
+            }
+            formData.setGiaTriGiam(giaTriGiam);
+        } catch (NumberFormatException e) {
+            errors.add("Giá trị giảm không hợp lệ, phải là một số.");
+        }
+
+        // Existing validations for other fields
         if (maCode == null || maCode.trim().isEmpty()) {
             errors.add("Mã code không được để trống.");
         }
@@ -260,20 +266,14 @@ public class AdminPromotionController {
         if (loaiGiamGia == null || loaiGiamGia.trim().isEmpty()) {
             errors.add("Loại giảm giá không được để trống.");
         }
-        if (giaTriGiam == null || giaTriGiam.compareTo(BigDecimal.ZERO) <= 0) {
-            errors.add("Giá trị giảm phải là số dương.");
-        }
         if (ngayBatDauStr == null || ngayBatDauStr.trim().isEmpty()) {
             errors.add("Ngày bắt đầu không được để trống.");
         }
         if (ngayKetThucStr == null || ngayKetThucStr.trim().isEmpty()) {
             errors.add("Ngày kết thúc không được để trống.");
         }
-        if (apDungCho == null || apDungCho.trim().isEmpty()) {
-            errors.add("Trường áp dụng cho không được để trống.");
-        }
 
-        // Parse và kiểm tra định dạng ngày
+        // Parse and validate dates
         Date ngayBatDau = null;
         Date ngayKetThuc = null;
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -287,7 +287,7 @@ public class AdminPromotionController {
             errors.add("Ngày bắt đầu hoặc kết thúc không đúng định dạng (yyyy-MM-dd).");
         }
 
-        // Kiểm tra trùng maCode (ngoại trừ chính khuyến mãi đang sửa)
+        // Validate maCode uniqueness
         if (maCode != null && !maCode.trim().isEmpty()) {
             Query checkCodeQuery = dbSession.createQuery("FROM KhuyenMaiEntity WHERE maCode = :maCode AND maKhuyenMai != :maKhuyenMai");
             checkCodeQuery.setParameter("maCode", maCode);
@@ -297,21 +297,18 @@ public class AdminPromotionController {
             }
         }
 
-        // Kiểm tra ngày hợp lệ
+        // Validate dates
         if (ngayBatDau != null) {
-            // Đặt ngày hiện tại về 00:00:00
             Calendar todayCal = Calendar.getInstance();
             todayCal.set(Calendar.HOUR_OF_DAY, 0);
             todayCal.set(Calendar.MINUTE, 0);
             todayCal.set(Calendar.SECOND, 0);
             todayCal.set(Calendar.MILLISECOND, 0);
             Date today = todayCal.getTime();
-
             if (ngayBatDau.before(today)) {
                 errors.add("Ngày bắt đầu không được là quá khứ.");
             }
         }
-
         if (ngayBatDau != null && ngayKetThuc != null) {
             if (ngayBatDau.getTime() == ngayKetThuc.getTime()) {
                 errors.add("Ngày bắt đầu không được trùng ngày kết thúc.");
@@ -321,17 +318,17 @@ public class AdminPromotionController {
             }
         }
 
-        // Nếu có lỗi, trả về form
+        // If errors exist, return to form
         if (!errors.isEmpty()) {
-            model.addAttribute("error", String.join(" ", errors));
-            model.addAttribute("editFormData", formData);
-            return showPromotionManager(session, model, 1);
+            redirectAttributes.addFlashAttribute("error", String.join(" ", errors));
+            redirectAttributes.addFlashAttribute("editFormData", formData);
+            return "redirect:/admin/promotions";
         }
 
         try {
             KhuyenMaiEntity khuyenMai = (KhuyenMaiEntity) dbSession.get(KhuyenMaiEntity.class, maKhuyenMai);
             if (khuyenMai == null) {
-                model.addAttribute("error", "Không tìm thấy khuyến mãi với mã " + maKhuyenMai);
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy khuyến mãi với mã " + maKhuyenMai);
                 return "redirect:/admin/promotions";
             }
 
@@ -341,23 +338,25 @@ public class AdminPromotionController {
             khuyenMai.setGiaTriGiam(giaTriGiam);
             khuyenMai.setNgayBatDau(ngayBatDau);
             khuyenMai.setNgayKetThuc(ngayKetThuc);
-            khuyenMai.setApDungCho(apDungCho);
 
             dbSession.update(khuyenMai);
-            model.addAttribute("success", "Cập nhật khuyến mãi thành công!");
+            redirectAttributes.addFlashAttribute("success", "Cập nhật khuyến mãi thành công!");
             return "redirect:/admin/promotions";
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi cập nhật khuyến mãi: " + e.getMessage());
-            model.addAttribute("editFormData", formData);
-            return showPromotionManager(session, model, 1);
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật khuyến mãi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("editFormData", formData);
+            return "redirect:/admin/promotions";
         }
     }
 
     // Xóa khuyến mãi
     @Transactional
     @RequestMapping(value = "/promotions/delete/{maKhuyenMai}", method = RequestMethod.GET)
-    public String deletePromotion(@PathVariable("maKhuyenMai") String maKhuyenMai, HttpSession session, Model model) {
+    public String deletePromotion(
+            @PathVariable("maKhuyenMai") String maKhuyenMai,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
         if (session.getAttribute("loggedInAdmin") == null) {
             return "redirect:/auth/login";
         }
@@ -367,7 +366,7 @@ public class AdminPromotionController {
             KhuyenMaiEntity khuyenMai = (KhuyenMaiEntity) dbSession.get(KhuyenMaiEntity.class, maKhuyenMai);
 
             if (khuyenMai == null) {
-                model.addAttribute("error", "Không tìm thấy khuyến mãi với mã " + maKhuyenMai);
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy khuyến mãi với mã " + maKhuyenMai);
                 return "redirect:/admin/promotions";
             }
 
@@ -380,16 +379,16 @@ public class AdminPromotionController {
             Date today = todayCal.getTime();
 
             if (khuyenMai.getNgayBatDau() != null && !khuyenMai.getNgayBatDau().after(today)) {
-                model.addAttribute("error", "Không thể xóa khuyến mãi " + khuyenMai.getMaCode() + " vì đã bắt đầu!");
+                redirectAttributes.addFlashAttribute("error", "Không thể xóa khuyến mãi " + khuyenMai.getMaCode() + " vì đã bắt đầu!");
                 return "redirect:/admin/promotions";
             }
 
             dbSession.delete(khuyenMai);
-            model.addAttribute("success", "Xóa khuyến mãi thành công!");
+            redirectAttributes.addFlashAttribute("success", "Xóa khuyến mãi thành công!");
             return "redirect:/admin/promotions";
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("error", "Lỗi khi xóa khuyến mãi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi xóa khuyến mãi: " + e.getMessage());
             return "redirect:/admin/promotions";
         }
     }

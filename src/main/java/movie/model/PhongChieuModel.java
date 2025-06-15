@@ -5,6 +5,7 @@ public class PhongChieuModel {
     private String tenPhongChieu;
     private int sucChua;
     private String maRapChieu;
+    private String tenRapChieu; // Thêm thuộc tính này
     private String urlHinhAnh;
 
     // Constructors
@@ -16,6 +17,7 @@ public class PhongChieuModel {
             this.tenPhongChieu = entity.getTenPhongChieu();
             this.sucChua = entity.getSucChua();
             this.maRapChieu = entity.getRapChieu() != null ? entity.getRapChieu().getMaRapChieu() : null;
+            this.tenRapChieu = entity.getRapChieu() != null ? entity.getRapChieu().getTenRapChieu() : null; // Thêm dòng này
             this.urlHinhAnh = entity.getUrlHinhAnh();
         }
     }
@@ -29,6 +31,8 @@ public class PhongChieuModel {
     public void setSucChua(int sucChua) { this.sucChua = sucChua; }
     public String getMaRapChieu() { return maRapChieu; }
     public void setMaRapChieu(String maRapChieu) { this.maRapChieu = maRapChieu; }
+    public String getTenRapChieu() { return tenRapChieu; } // Thêm getter
+    public void setTenRapChieu(String tenRapChieu) { this.tenRapChieu = tenRapChieu; } // Thêm setter
     public String getUrlHinhAnh() { return urlHinhAnh; }
     public void setUrlHinhAnh(String urlHinhAnh) { this.urlHinhAnh = urlHinhAnh; }
 }
