@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/context
+            http://www.springframework.org/schema/context/spring-context.xsd
+            http://www.springframework.org/schema/tx
+            http://www.springframework.org/schema/tx/spring-tx.xsd
+            http://www.springframework.org/schema/mvc
+            http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <mvc:annotation-driven />
+    
+    <!-- Cho phép truy cập tài nguyên tĩnh của USER -->
+    <mvc:resources mapping="/resources/**" location="/resources/" />
+
+    <!-- Quét tất cả các package trong movie -->
+    <context:component-scan base-package="movie" />
+    
+    <!-- Cấu hình Tiles -->
+    <bean id="tilesConfigurer" class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
+        <property name="definitions">
+            <list>
+                <value>/WEB-INF/configs/tiles-definitions.xml</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- View Resolver cho Tiles -->
+    <bean id="tilesViewResolver" class="org.springframework.web.servlet.view.tiles3.TilesViewResolver">
+        <property name="order" value="0" />
+    </bean>
+
+    <!-- View Resolver để ánh xạ JSP -->
+    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views/" />
+        <property name="suffix" value=".jsp" />
+        <property name="order" value="1" />
+    </bean>
+    
+    <!-- Cấu hình Interceptor -->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <mvc:exclude-mapping path="/resources/**"/>
+            <bean class="movie.interceptor.AuthInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+    <!-- Cấu hình Hibernate -->
+    <bean id="sessionFactory" 
+          class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.SQLServerDialect</prop>
+                <prop key="hibernate.show_sql">true</prop>
+                <prop key="hibernate.current_session_context_class">org.springframework.orm.hibernate4.SpringSessionContext</prop>
+            </props>
+        </property>
+        <property name="packagesToScan" value="movie.entity"/>
+    </bean>
+<!-- Kết nối CSDL -->
+    <bean id="dataSource" 
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource"
+          p:driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+          p:url="jdbc:sqlserver://localhost:1433;databaseName=QLBanVeXemPhim;encrypt=true;trustServerCertificate=true;sslProtocol=TLSv1.2"
+          p:username="sa"
+          p:password="1111" />
+          
+    <!-- Transaction Manager -->
+    <bean id="transactionManager" 
+          class="org.springframework.orm.hibernate4.HibernateTransactionManager" 
+          p:sessionFactory-ref="sessionFactory" />
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+    
+    <bean id="restTemplate" class="org.springframework.web.client.RestTemplate"/>
+    
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- maxUploadSize=5MB -->
+        <property name="maxUploadSize" value="5242880"/>
+    </bean>
+    
+    <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl"> 
+        <property name="host" value="smtp.gmail.com" /> 
+        <property name="port" value="587" /> 
+        <property name="username" value="killerbaohuy@gmail.com" /> 
+        <property name="password" value="gbva qrva czxn rwyn" /> 
+        <property name="defaultEncoding" value="UTF-8"/> 
+        <property name="javaMailProperties"> 
+            <props> 
+                <prop key="mail.smtp.auth">true</prop> 
+                <prop key="mail.smtp.starttls.enable">true</prop> 
+                <prop key="mail.smtp.starttls.required">true</prop> 
+                <prop key="mail.debug">true</prop> 
+                <prop key="mail.smtp.ssl.protocols">TLSv1.2</prop>
+            </props> 
+        </property> 
+    </bean>
+
+</beans>

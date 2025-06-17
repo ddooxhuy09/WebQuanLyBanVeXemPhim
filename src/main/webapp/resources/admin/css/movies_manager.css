@@ -1,0 +1,850 @@
+.header {
+    flex-wrap: wrap;
+}
+
+/**Trang phim**/
+.movie-form h2,
+.movie-list h2 {
+    font-family: var(--heading-font-family);
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.movie-form .form-group label {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.movie-form .form-control {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    transition: border-color 0.3s ease;
+}
+
+.movie-form .form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(45, 153, 174, 0.3);
+}
+
+
+.room-management, .theater-management, .showtime-management {
+    padding: 20px;
+    width: 100%;
+}
+
+.room-list, .theater-list, .showtime-list {
+    padding: 20px;
+}
+
+.form-group label {
+    color: var(--text-color); /* #001C44 */
+}
+
+.form-control:focus {
+    border-color: var(--accent-color); /* #2C99AE */
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
+}
+
+/** hết Trang phim**/
+
+/*Trang phòng chiếu*/
+
+.seat-grid-container {
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.screen {
+    background-color: black;
+    color: white;
+    padding: 0.25rem;
+    text-align: center;
+    font-weight: bold;
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.seat-row {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    min-width: 100%;
+}
+
+.seat-grid {
+    display: flex;
+    flex-direction: column;
+    overflow-x: auto;
+    border: 1px solid var(--text-color-light);
+    padding: 0.5rem;
+    max-width: 100%;
+    width: 100%;
+}
+
+.seat-cell.label {
+    width: 2.5rem;
+    height: 1.75rem;
+    background: #F5F6FA;
+    font-weight: 600;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.seat-cell {
+    width: 2.5rem;
+    height: 1.75rem;
+    border: 1px solid var(--accent-color); /* Viền cố định cho mọi ô */
+    margin: 1px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-family: var(--font-family);
+    color: var(--text-color);
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box; /* Đảm bảo border và margin được tính vào kích thước */
+}
+
+.seat-cell.empty {
+    background: transparent; /* Chỉ thay đổi màu nền */
+    /* Xóa border: none để giữ viền từ .seat-cell */
+}
+
+.seat-cell:hover {
+    background-color: var(--hover-color);
+}
+
+.seat-cell.dragging {
+    opacity: 0.7;
+}
+
+/* Bảng chỉnh sửa */
+.table.editing {
+    table-layout: auto;
+    width: 100%;
+}
+.editable input, .editable select {
+    width: 100%;
+    padding: 0.25rem 0.4rem;
+    margin: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    background-color: var(--bg-base);
+    color: var(--sidebar-bg-color);
+    
+    height: 100%;
+    line-height: 1.5;
+}
+.editable input:focus, .editable select:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
+}
+
+#loaiGheEdit {
+    margin:  0.75rem 0;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+/* hết Trang phòng chiếu*/
+
+/*thẻ tag của bảng phim*/
+
+.tag-container {
+    border: 0;
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: #F5F6FA;
+    color: var(--text-color);
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.tag {
+    padding: 0.5rem 0.75rem;
+    margin: 0.1rem;
+    font-size: 0.9rem;
+    position: static;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: #F5F6FA;
+    color: var(--text-color);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: inline-block;
+}
+.remove-tag {
+   position: static;
+    transform: none;
+    cursor: pointer;
+    padding: 0px 1px;
+    font-size: 0.9rem;
+    line-height: 1;
+    border-radius: 3px;
+    font-weight: bold;
+    margin-left: 10px;
+    height: auto;
+    width: auto;
+}
+
+.remove-tag:hover {
+    color: #bd2130; /* Màu đỏ đậm hơn khi hover */
+}
+
+.tag-input {
+    border: none;
+    flex-grow: 0; /* Ngăn input giãn quá mức */
+    min-width: 80px; /* Độ rộng tối thiểu để nhập liệu */
+    width: 100%;
+    height: auto;
+    margin: 0.5rem 0;
+    box-shadow: none;
+    font-size: 0.85rem;
+}
+
+.tag-input:focus {
+    outline: none;
+}
+
+/*thẻ tag của bảng phim*/
+
+/* Bộ lọc */
+
+.filter-section {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-section form {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-section .form-group {
+    flex: 1 1 auto;
+    min-width: 120px;
+    max-width: 200px;
+    margin: 10px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-section .form-group label {
+    display: block;
+    font-family: var(--font-family);
+    color: var(--text-color);
+    font-weight: 500;
+    margin-bottom: 5px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.filter-section .form-control {
+    width: 100%;
+    font-size: 14px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-family: var(--font-family);
+    transition: border-color 0.3s ease;
+}
+
+.filter-section .form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
+}
+
+.filter-section .filter-btn {
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    height: 38px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* .filter-section .custom-btn {
+    padding: 8px 15px;
+    border-radius: 5px;
+    margin: 2px;
+} */
+
+/* Ghi đè kiểu mặc định của Bootstrap */
+.form-group {
+    margin-bottom: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* hết Bộ lọc */
+
+
+
+/* Modal chi tiết phim */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;    
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: var(--bg-base);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    max-width: 80%;
+    max-height: 90vh;
+    overflow: auto;
+    width: 100%;
+    margin: auto;
+}
+
+.modal-content h3 {
+    font-family: var(--heading-font-family);
+    font-size: 1.25rem;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.modal-actions .custom-btn {
+    padding: 8px 15px;
+    border-radius: 5px;
+}
+
+#seatMapModal .modal-content {
+    width: 90vw;
+    max-width: 1000px;
+    min-width: 300px;
+    padding: 1.5rem;
+    max-height: 95vh;
+    overflow: auto;
+    
+}
+
+#editSeatMapModal .modal-content {
+    width: 90vw;
+    max-width: 1000px;
+    min-width: 300px;
+    padding: 1.5rem;
+    max-height: 90vh; /* Giới hạn chiều cao để kích hoạt cuộn */
+    overflow-y: auto; /* Chỉ cho phép cuộn dọc */
+    
+    background: var(--bg-base); /* Lấy từ .modal-content */
+    border-radius: 0.5rem; /* Lấy từ .modal-content */
+}
+
+
+/* Có thể vẫn giảm margin/padding của seat-grid nếu muốn */
+#seatMapModal .seat-grid,
+#editSeatMapModal .seat-grid {
+    margin: 0.5rem auto;
+    padding: 0.25rem;
+}
+
+.add-btn-container{
+    margin-bottom: 10px;
+}
+
+/* Quản Lý Loại Ghế */
+.seat-type-management .table {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.seat-type-management .color-preview {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.seat-type-management .seat-type-name.editing input,
+.seat-type-management .seat-type-color.editing input {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.seat-type-management .seat-type-name.editing input:focus,
+.seat-type-management .seat-type-color.editing input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
+}
+
+.seat-type-management .seat-type-color.editing input {
+    height: 28px;
+}
+
+#addSeatTypeBtn {
+    margin-left: 10px;
+}
+
+
+/* Chi tiết phim */
+.detail-field {
+    margin-bottom: 15px;
+}
+
+.detail-field label {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* .detail-field span {
+    display: block;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: #F5F6FA;
+    color: var(--text-color);
+    text-overflow: ellipsis;
+    overflow: hidden;
+} */
+
+.detail-field input,
+.detail-field select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-family: var(--font-family);
+    color: var(--text-color);
+    background: var(--bg-base);
+    
+}
+
+.detail-field input:focus,
+.detail-field select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
+}
+
+.detail-field img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    margin-top: 5px;
+}   
+
+.detail-field video {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    margin-top: 5px;
+}
+
+/* xuất chiếu */
+.showtime-management {
+    padding: 20px;
+    width: 100%;
+}
+
+.showtime-management h2 {
+    font-family: var(--heading-font-family);
+    font-size: 1.5rem;
+    color: var(--text-color);
+    margin-bottom: 20px;
+}
+
+.row {
+    margin-bottom: 15px; /* Add spacing between rows */
+}
+
+
+
+.showtime-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.showtime-entry input[type="datetime-local"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.custom-btn.mt-3 {
+    padding: 8px 15px;
+    display: block; /* Ensure the button is full-width and centered */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/*end xuất chiếu*/
+
+.room-image {
+    width: 50px; /* Kích thước nhỏ gọn */
+    height: 50px;
+    object-fit: cover; /* Giữ tỷ lệ, không bị méo */
+    border-radius: 4px; /* Bo góc nhẹ cho đẹp */
+    display: block; /* Đảm bảo hình ảnh không bị lệch */
+    margin: 0 auto; /* Căn giữa trong ô bảng */
+}
+
+/* end room-image */
+
+/* CSS mới cho lịch */
+.calendar-container {
+    max-height: 70vh; /* Use viewport height for better responsiveness */
+    overflow-y: auto;
+    border: 1px solid var(--border-color); /* Add a border to clearly see the container bounds */
+    margin-top: 15px;
+    position: relative; /* Good practice for containing absolute elements, though not strictly needed if TD is relative */
+    padding-bottom: 10px; /* Add padding at the bottom inside the scroll area */
+}
+
+.calendar {
+    width: 100%;
+    border-collapse: collapse;
+    /* Remove margin-top if it's on .calendar-container */
+    /* background-color: var(--bg-base); */ /* Usually inherited */
+    /* box-shadow: 0 2px 4px var(--shadow-color); */ /* Shadow on container is better */
+    table-layout: fixed; /* Helps with consistent column widths */
+}
+
+.calendar th, .calendar td {
+    border: 1px solid var(--border-color);
+    padding: 0; /* Remove padding, control spacing with event margins/positioning */
+    text-align: center;
+    vertical-align: top; /* Keep vertical alignment */
+    height: 80px; /* Keep fixed height for hour slots */
+    position: relative; /* *** CRITICAL: Make TD the positioning context for absolute .event divs *** */
+}
+
+.calendar th {
+    background-color: var(--sidebar-bg-color);
+    color: var(--text-color-light);
+    font-family: var(--heading-font-family);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px; /* Add padding back to header cells */
+    position: sticky; /* Make header sticky */
+    top: 0; /* Stick to the top of the .calendar-container */
+    z-index: 10; /* Ensure header is above events */
+}
+
+.calendar td {
+    /* background-color: var(--bg-base); */ /* Inherited */
+    font-size: 12px;
+}
+
+.calendar .time-slot {
+    width: 80px; /* Keep fixed width for time column */
+    background-color: #f9f9f9;
+    font-family: var(--font-family);
+    font-size: 14px;
+    font-weight: bold;
+    vertical-align: middle; /* Center time vertically */
+    padding: 5px; /* Add padding back */
+    position: sticky; /* Make time column sticky */
+    left: 0; /* Stick to the left */
+    z-index: 5; /* Ensure time is above grid lines but below header */
+}
+
+
+/* Style the event div */
+.calendar .event {
+    position: absolute;
+    /* top, height, left, right được set bởi JS */
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px; /* Giảm nhẹ để vừa chữ */
+    line-height: 1.3; /* Tăng nhẹ line-height */
+    text-align: left;
+    transition: background-color 0.2s, opacity 0.2s;
+    overflow: hidden; /* Quan trọng: ẩn nội dung tràn ra */
+    padding: 3px 5px; /* Padding bên trong event block */
+    color: white; /* Màu chữ mặc định là trắng */
+    border: 1px solid rgba(0,0,0,0.2); /* Thêm border nhẹ để rõ ràng hơn */
+    z-index: 1;
+    /* Đảm bảo background không bị transparent */
+    background-color: #777; /* Màu nền mặc định nếu status class không khớp */
+    opacity: 1; /* Đảm bảo không bị trong suốt do opacity */
+}
+
+.calendar .event:hover {
+    opacity: 0.85;
+    z-index: 2;
+}
+
+/* Colors for status (keep these) */
+.event.not_started {
+    background-color: #4CAF50 ; /* Xanh lá - Chưa chiếu */
+    /* Có thể thêm  để tăng độ ưu tiên nếu nghi ngờ bị ghi đè */
+}
+
+.event.playing {
+    background-color: #2196F3 ; /* Xanh dương - Đang chiếu */
+}
+
+.event.finished {
+    background-color: #9E9E9E ; /* Xám - Đã chiếu */
+}
+
+.event.has_surcharge {
+    background-color: #FF9800 ; /* Cam - Có phụ thu */
+    /* Có thể thêm border khác biệt nếu muốn */
+    /* border: 2px solid #E65100; */
+}
+/* --- Hết phần quan trọng --- */
+
+
+/* CSS cho tooltip bên trong event (giữ nguyên hoặc chỉnh sửa nếu cần) */
+.event .tooltip {
+    display: none;
+    position: absolute;
+    bottom: 105%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 8px 10px;
+    border-radius: 4px;
+    z-index: 100;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.event:hover .tooltip {
+    display: block;
+}
+
+/* Ensure calendar message is styled */
+.calendar-message {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 1.1em;
+    color: #666;
+    border: 1px dashed var(--border-color);
+    margin: 20px;
+    background-color: #f9f9f9;
+}
+
+.calendar-navigation {
+    display: flex; /* Bật Flexbox */
+    justify-content: center; /* Căn giữa các item theo chiều ngang */
+    align-items: center; /* Căn giữa các item theo chiều dọc */
+    gap: 15px; /* Khoảng cách giữa các nút và text */
+    margin-bottom: 15px; /* Tăng khoảng cách dưới */
+    margin-top: 10px; /* Thêm khoảng cách trên nếu cần */
+}
+
+.calendar-navigation span {
+    font-size: 1.1em; /* Tăng kích thước chữ một chút */
+    font-weight: bold;
+    color: var(--text-color);
+    flex-shrink: 0; /* Ngăn text bị co lại */
+}
+
+/* Đảm bảo các nút có kích thước phù hợp */
+.calendar-navigation .custom-btn {
+    padding: 6px 12px; /* Điều chỉnh padding nếu cần */
+    flex-shrink: 0; /* Ngăn nút bị co lại */
+}
+
+/* Nút Thêm Suất */
+.add-showtime-btn {
+    margin-bottom: 10px;
+}
+
+/*KHÁCH HÀNG*/
+/* Larger modal for better readability */
+.large-modal {
+    width: 90vw; /* Wider modal */
+    max-width: 900px; /* Maximum width for larger screens */
+    min-width: 600px; /* Minimum width to ensure readability */
+    padding: 2rem; /* More padding for breathing room */
+    max-height: 80vh; /* Slightly smaller height to fit screen */
+    overflow-y: auto; /* Enable vertical scrolling if content overflows */
+}
+
+/* Adjust table text for readability in large modal */
+.large-modal .table th,
+.large-modal .table td {
+    font-size: 1rem; /* Larger font size for table content */
+    padding: 1rem; /* More padding for table cells */
+}
+
+/* Style for total points section in points detail modal */
+.total-points {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/*SORT*/
+/* Styling for sorting section */
+.sort-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.sort-section label {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.sort-section select {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-family: var(--font-family);
+    color: var(--text-color);
+    background: var(--bg-base);
+    transition: border-color 0.3s ease;
+}
+
+.sort-section select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(44, 153, 174, 0.3);
+    outline: none;
+}
+
+/*ĐƠN HÀNG*/
+.info-section, .tickets-section, .combos-section, .customer-section, .invoice-section {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.info-section .row, .customer-section .row, .invoice-section .row {
+    margin-bottom: 10px;
+}
+.info-section .col-4, .customer-section .col-4, .invoice-section .col-4 {
+    font-weight: bold;
+}
+.info-section .col-8, .customer-section .col-8, .invoice-section .col-8 {
+    color: #333;
+}
+.info-section .highlight {
+    color: #ff0000;
+    font-weight: bold;
+}
+.total {
+    font-weight: bold;
+    text-align: right;
+    padding: 10px;
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    border-top: none;
+}
+/* Điều chỉnh modal chi tiết đơn hàng để rộng rãi hơn */
+#orderDetailModal .modal-content {
+    width: 90vw;
+    max-width: 1000px;
+    min-width: 600px;
+    padding: 2rem;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--bg-base);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+#orderDetailModal h2,
+#orderDetailModal h3 {
+    font-family: var(--heading-font-family);
+    font-size: 1.5rem;
+    color: var(--text-color);
+    margin-bottom: 20px;
+}
+#orderDetailModal h3 {
+    font-size: 1.25rem;
+}
+#orderDetailModal .table th,
+#orderDetailModal .table td {
+    padding: 1rem;
+    font-size: 1rem;
+}
+#orderDetailModal .info-section,
+#orderDetailModal .tickets-section,
+#orderDetailModal .combos-section,
+#orderDetailModal .customer-section,
+#orderDetailModal .invoice-section {
+    margin-bottom: 30px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 20px;
+}
+#orderDetailModal .modal-actions {
+    margin-top: 30px;
+}
+#orderDetailModal .total {
+    font-size: 1.1rem;
+    padding: 15px;
+}
+
+/*Trailer của phim*/
+.url-trailer-view a {
+    color: #007bff;
+    text-decoration: none;
+}
+.url-trailer-view a:hover {
+    text-decoration: underline;
+}
+.url-trailer-view p, .url-trailer-edit {
+    margin: 0;
+}
+/*Trailer của phim*/

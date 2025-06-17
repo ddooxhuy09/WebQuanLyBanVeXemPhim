@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+    "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+    "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+	<!-- Định nghĩa layout chung cho admin -->
+	<definition name="adminLayout"
+		template="/WEB-INF/views/admin/layout.jsp">
+		<put-attribute name="title" value="" />
+		<put-attribute name="body" value="" />
+	</definition>
+
+	<!-- Trang Dashboard -->
+	<definition name="admin/dashboard" extends="adminLayout">
+		<put-attribute name="title" value="Dashboard" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/dashboard.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Phim -->
+	<definition name="admin/movies_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Phim" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/movies_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Rạp Chiếu -->
+	<definition name="admin/theater_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Rạp Chiếu" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/theater_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Bắp Nước -->
+	<definition name="admin/food_combo_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Bắp Nước" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/food_combo_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Khuyến Mãi -->
+	<definition name="admin/promotion_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Khuyến Mãi" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/promotion_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Khách Hàng -->
+	<definition name="admin/customer_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Khách Hàng" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/customer_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Phụ Thu -->
+	<definition name="admin/surcharge_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Phụ Thu" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/surcharge_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Phòng Chiếu -->
+	<definition name="admin/theater_room_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Phòng Chiếu" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/theater_room_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Đơn Hàng -->
+	<definition name="admin/order_manager" extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Đơn Hàng" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/order_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Quy Đổi Điểm -->
+	<definition name="admin/point_redemption_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Quy Đổi Điểm" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/point_redemption_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Suất Chiếu -->
+	<definition name="admin/showtime_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Suất Chiếu" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/showtime_manager.jsp" />
+	</definition>
+
+	<!-- Trang Quản Lý Thanh Toán -->
+	<definition name="admin/payment_manager"
+		extends="adminLayout">
+		<put-attribute name="title" value="Quản Lý Thanh Toán" />
+		<put-attribute name="body"
+			value="/WEB-INF/views/admin/payment_manager.jsp" />
+	</definition>
+
+	<!-- Trang Login (không dùng layout admin) -->
+	<definition name="admin/login"
+		template="/WEB-INF/views/admin/login.jsp">
+		<!-- Không cần thêm thuộc tính nào -->
+	</definition>
+</tiles-definitions>
